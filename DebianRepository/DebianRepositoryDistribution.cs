@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 
 namespace ArxOne.Debian;
 
-public class DebianRepository
+public class DebianRepositoryDistribution
 {
     /*
      Serve:
@@ -19,12 +19,12 @@ public class DebianRepository
        /dists/{Distribution}/{Component}/binary-{Arch}/Release
      */
 
-    public string Distribution { get; }
-    public IReadOnlyList<string> Components { get; }
+    public string DistributionName { get; }
+    public IReadOnlyList<DebianRepositoryComponent> Components { get; }
 
-    public DebianRepository(string distribution, params string[] components)
+    public DebianRepositoryDistribution(string distributionName, params DebianRepositoryComponent[] components)
     {
-        Distribution = distribution;
+        DistributionName = distributionName;
         Components = components.ToImmutableArray();
     }
 }
