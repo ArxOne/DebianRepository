@@ -27,4 +27,7 @@ public class DebianRepositoryDistribution
         DistributionName = distributionName;
         Components = components.ToImmutableArray();
     }
+
+    public void AddSource(string path, string componentName)
+    { }
 }
