@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
@@ -60,7 +61,7 @@ public class StanzaReader
                 yield return (null, line.TrimStart(' '));
             else
             {
-                var index = line.IndexOf(": ");
+                var index = line.IndexOf(": ", StringComparison.InvariantCulture);
                 if (index != -1)
                     yield return (line[..index], line[(index + 2)..]);
             }
