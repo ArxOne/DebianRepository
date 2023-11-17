@@ -8,13 +8,12 @@ namespace ArxOne.Debian.Stanza;
 [DebuggerDisplay($"{{{nameof(Text)}}}")]
 public class StanzaValue
 {
-    private readonly IReadOnlyList<string> _value;
+    public IReadOnlyList<string> Lines { get; }
+    public string FirstLine => Lines[0];
+    public string Text => string.Join(Environment.NewLine, Lines);
 
-    public string FirstLine => _value[0];
-    public string Text => string.Join(Environment.NewLine, _value);
-
-    public StanzaValue(IEnumerable<string> value)
+    public StanzaValue(IEnumerable<string> lines)
     {
-        _value = value.ToImmutableArray();
+        Lines = lines.ToImmutableArray();
     }
 }

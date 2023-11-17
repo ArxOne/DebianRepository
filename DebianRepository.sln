@@ -5,6 +5,8 @@ VisualStudioVersion = 17.7.34221.43
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DebianRepository", "DebianRepository\DebianRepository.csproj", "{AD565493-DFD8-4810-AE9B-1CCF6A5CD386}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DebianRepositoryTest", "DebianRepositoryTest\DebianRepositoryTest.csproj", "{AA53800C-ECA1-4E54-B4A2-A5504FDA3973}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{AD565493-DFD8-4810-AE9B-1CCF6A5CD386}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AD565493-DFD8-4810-AE9B-1CCF6A5CD386}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AD565493-DFD8-4810-AE9B-1CCF6A5CD386}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AA53800C-ECA1-4E54-B4A2-A5504FDA3973}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA53800C-ECA1-4E54-B4A2-A5504FDA3973}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA53800C-ECA1-4E54-B4A2-A5504FDA3973}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA53800C-ECA1-4E54-B4A2-A5504FDA3973}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

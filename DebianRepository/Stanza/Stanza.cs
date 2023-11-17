@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -8,11 +9,12 @@ namespace ArxOne.Debian.Stanza;
 /// <summary>
 /// Same as dictionary, but ordered
 /// </summary>
-/// <seealso cref="System.Collections.Generic.IDictionary&lt;System.String, System.Collections.Generic.IReadOnlyList&lt;System.String&gt;&gt;" />
+/// <seealso cref="System.Collections.Generic.IDictionary&lt;System.String, ArxOne.Debian.Stanza.StanzaValue&gt;" />
 public class Stanza : IDictionary<string, StanzaValue>
 {
+    private static readonly IEqualityComparer<string> Comparer = StringComparer.InvariantCultureIgnoreCase;
     private readonly List<string> _keys = new();
-    private readonly IDictionary<string, StanzaValue> _dictionary = new Dictionary<string, StanzaValue>();
+    private readonly IDictionary<string, StanzaValue> _dictionary = new Dictionary<string, StanzaValue>(Comparer);
 
     public int Count => _dictionary.Count;
     public bool IsReadOnly => false;
@@ -25,7 +27,7 @@ public class Stanza : IDictionary<string, StanzaValue>
         get { return _dictionary[key]; }
         set
         {
-            if (_dictionary.ContainsKey(key))
+            if (!_dictionary.ContainsKey(key))
                 _keys.Add(key);
             _dictionary[key] = value;
         }
@@ -82,7 +84,7 @@ public class Stanza : IDictionary<string, StanzaValue>
     {
         var removed = _dictionary.Remove(item);
         if (removed)
-            _keys.Remove(item.Key);
+            _keys.RemoveAll(k => Comparer.Equals(k, item.Key));
         return removed;
     }
 
@@ -101,12 +103,14 @@ public class Stanza : IDictionary<string, StanzaValue>
     {
         var removed = _dictionary.Remove(key);
         if (removed)
-            _keys.Remove(key);
+            _keys.RemoveAll(k => Comparer.Equals(k, key));
         return removed;
     }
 
     public bool TryGetValue(string key, out StanzaValue value)
     {
+#pragma warning disable CS8601 // Possible null reference assignment.
         return _dictionary.TryGetValue(key, out value);
+#pragma warning restore CS8601 // Possible null reference assignment.
     }
 }
