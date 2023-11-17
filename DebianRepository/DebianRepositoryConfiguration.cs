@@ -1,11 +1,16 @@
 ﻿using System;
 using System.IO;
+using System.Text;
+using ArxOne.Debian.Cache;
 
 namespace ArxOne.Debian;
 
 public class DebianRepositoryConfiguration : IDisposable
 {
-    public string Root { get; set; } = "/debian";
+    public string WebRoot { get; set; } = "/debian";
+    public string StorageRoot { get;  } 
+
+    public Encoding StanzaEncoding { get; set; } = new UTF8Encoding(false);
 
     public string GpgPublicKeyName { get; set; } = "public.gpg";
 
@@ -32,6 +37,13 @@ public class DebianRepositoryConfiguration : IDisposable
 
     private Gpg? _gpg;
     public Gpg Gpg => _gpg ??= new Gpg(GpgPath);
+
+    public FileCache? FileCache { get; set; } = new("cache");
+
+    public DebianRepositoryConfiguration(string storageRoot)
+    {
+        StorageRoot = storageRoot;
+    }
 
     protected virtual void Dispose(bool disposing)
     {
