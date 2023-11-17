@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using ArxOne.Debian.Stanza;
 using NUnit.Framework;
 #pragma warning disable NUnit2005
@@ -17,23 +17,16 @@ public class StanzaSerializerTest
         public Serialized()
         { }
 
-        public Serialized(string? Name = null, string[]? Description = null, string? Version = null)
+        public Serialized(string? name = null, string[]? description = null, string? version = null)
         {
-            this.Name = Name;
-            this.Description = Description;
-            this.Version = Version;
-        }
-
-        public void Deconstruct(out string? Name, out string[]? Description, out string? Version)
-        {
-            Name = this.Name;
-            Description = this.Description;
-            Version = this.Version;
+            Name = name;
+            Description = description;
+            Version = version;
         }
     }
 
     [Test]
-    public void Read()
+    public void DeserializeSingle()
     {
         var s = @"Name: nymos
 Description: a
@@ -47,5 +40,23 @@ Version: 1.0
         Assert.AreEqual("nymos", r.Name);
         Assert.AreEqual(new[] { "a", "b" }, r.Description);
         Assert.AreEqual("1.0", r.Version);
+    }
+
+    [Test]
+    public void SerializeSingle()
+    {
+        var r = new Serialized("name", new[] { "some", "description" }, "α");
+
+        var serializer = new StanzaSerializer();
+        var stringWriter = new StringWriter();
+        serializer.Serialize(r, stringWriter);
+
+        var s = stringWriter.ToString();
+        Assert.AreEqual(@"Name: name
+Description: some
+ description
+Version: α
+
+", s);
     }
 }
