@@ -19,11 +19,19 @@ public class StanzaReader
     {
         for (; ; )
         {
-            var keyValues = ReadKeyValues(_textReader).ToImmutableArray();
-            if (keyValues.Length == 0)
+            var stanza = ReadNext();
+            if (stanza is null)
                 yield break;
-            yield return new Stanza(keyValues.Select(kv => (kv.Key, (IEnumerable<string>)kv.Values)));
+            yield return stanza;
         }
+    }
+
+    public Stanza? ReadNext()
+    {
+        var keyValues = ReadKeyValues(_textReader).ToImmutableArray();
+        if (keyValues.Length == 0)
+            return null;
+        return new Stanza(keyValues.Select(kv => (kv.Key, (IEnumerable<string>)kv.Values)));
     }
 
     private static IEnumerable<(string Key, IReadOnlyList<string> Values)> ReadKeyValues(TextReader textReader)

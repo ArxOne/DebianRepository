@@ -60,6 +60,8 @@ public class StanzaMapper
             return value.Text;
         if (targetType == typeof(IEnumerable<string>) || targetType == typeof(IReadOnlyCollection<string>) || targetType == typeof(IReadOnlyList<string>))
             return value.Lines;
+        if (targetType == typeof(string[]))
+            return value.Lines.ToArray();
         if (targetType == typeof(long))
             return long.Parse(value.Text);
         if (targetType == typeof(ulong))
