@@ -29,6 +29,12 @@ public class Stanza : IDictionary<string, StanzaValue>
         {
             if (!_dictionary.ContainsKey(key))
                 _keys.Add(key);
+            else
+            {
+                for (int i = 0; i < _keys.Count; i++)
+                    if (Comparer.Equals(_keys[i], key))
+                        _keys[i] = key;
+            }
             _dictionary[key] = value;
         }
     }

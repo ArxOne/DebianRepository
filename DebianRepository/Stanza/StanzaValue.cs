@@ -16,4 +16,11 @@ public class StanzaValue
     {
         Lines = lines.ToImmutableArray();
     }
+
+    public StanzaValue(params string[] lines)
+    {
+        Lines = lines.ToImmutableArray();
+    }
+
+    public static implicit operator StanzaValue(string s) => new StanzaValue(s);
 }
