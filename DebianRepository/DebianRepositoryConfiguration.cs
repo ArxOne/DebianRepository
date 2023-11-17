@@ -30,14 +30,14 @@ public class DebianRepositoryConfiguration : IDisposable
         }
     }
 
-    private Gpg _gpg;
+    private Gpg? _gpg;
     public Gpg Gpg => _gpg ??= new Gpg(GpgPath);
 
     protected virtual void Dispose(bool disposing)
     {
         try
         {
-            _gpg.Dispose();
+            _gpg?.Dispose();
         }
         // ReSharper disable once EmptyGeneralCatchClause
 #pragma warning disable S2486
