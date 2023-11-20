@@ -8,7 +8,7 @@ namespace ArxOne.Debian;
 public class DebianRepositoryConfiguration : IDisposable
 {
     public string WebRoot { get; set; } = "/debian";
-    public string StorageRoot { get;  } 
+    public string StorageRoot { get; } 
 
     public Encoding StanzaEncoding { get; set; } = new UTF8Encoding(false);
 

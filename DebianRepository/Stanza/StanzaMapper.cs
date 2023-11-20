@@ -58,6 +58,8 @@ public class StanzaMapper
     {
         if (targetType == typeof(string))
             return value.Text;
+        if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(Nullable<>))
+            return FromStanzaValue(value, targetType.GetGenericArguments()[0]);
         if (targetType == typeof(IEnumerable<string>) || targetType == typeof(IReadOnlyCollection<string>) || targetType == typeof(IReadOnlyList<string>))
             return value.Lines;
         if (targetType == typeof(string[]))

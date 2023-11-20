@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Reflection;
 
 namespace ArxOne.Debian.Stanza;
 
@@ -23,7 +24,7 @@ public class StanzaSerializer
         var stanza = reader.ReadNext();
         if (stanza is null)
             return null;
-        var instance = Activator.CreateInstance(t);
+        var instance = Activator.CreateInstance(t, true);
         _mapper.Map(instance, t, stanza);
         return instance;
     }
