@@ -138,7 +138,7 @@ public class DebianRepository
             var debReader = new DebReader(debStream, _configuration.StanzaEncoding);
             try
             {
-                var (rawControl, _) = debReader.Read();
+                var (rawControl, _) = debReader.Read(readFiles: false);
                 using var controlReader = new StringReader(rawControl[""]);
                 var controlSerializer = new StanzaSerializer();
                 var control = controlSerializer.Deserialize<DebianRepositoryPackage>(controlReader);
