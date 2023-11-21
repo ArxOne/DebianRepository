@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ArxOne.Debian.Version;
 
-public class DebianVersionComparer : IComparer<DebianVersion>, IEqualityComparer<DebianVersion>
+public class DebianVersionComparer : IComparer<DebianVersion?>, IEqualityComparer<DebianVersion?>
 {
     public static readonly DebianVersionComparer Default = new();
 

@@ -1,13 +1,13 @@
-﻿namespace ArxOne.Debian;
+﻿using ArxOne.Debian.Version;
+
+namespace ArxOne.Debian;
 
 public class DebianRepositoryPackage
 {
-    // -- key
+    // -- description (from .deb)
     public string Package { get; set; }
     public string Version { get; set; }
     public string Architecture { get; set; }
-
-    // -- description (from .deb)
     public string? Priority { get; set; }
     public string? Section { get; set; }
     public long? InstalledSize { get; set; }
@@ -15,6 +15,9 @@ public class DebianRepositoryPackage
     public string? Depends { get; set; }
     public string[]? Description { get; set; }
     public string? Homepage { get; set; }
+
+    private DebianVersion? _debianVersion;
+    public DebianVersion? DebianVersion => _debianVersion ??= DebianVersion.TryParse(Version);
 
     // -- information for Packages file
     public string? Filename { get; set; }

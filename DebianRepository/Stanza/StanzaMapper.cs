@@ -31,7 +31,7 @@ public class StanzaMapper
 
     private static IEnumerable<(PropertyInfo PropertyInfo, string Name)> GetProperties(Type t)
     {
-        return t.GetProperties(BindingFlags.Public | BindingFlags.Instance).Select(p => (p, GetMappingName(p)));
+        return t.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.GetProperty | BindingFlags.SetProperty).Select(p => (p, GetMappingName(p)));
     }
 
     private static string GetMappingName(MemberInfo propertyInfo)

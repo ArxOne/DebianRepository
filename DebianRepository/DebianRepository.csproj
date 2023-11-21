@@ -5,5 +5,8 @@
     <Nullable>enable</Nullable>
     <RootNamespace>ArxOne.Debian</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="SharpCompress" Version="0.34.2" />
+  </ItemGroup>
 
 </Project>
