@@ -1,3 +1,6 @@
-﻿namespace ArxOne.Debian;
+﻿using System;
+using System.IO;
 
-public record DebianRepositoryDistributionSource(string Distribution, string Component, string SourceRelativeDirectory);
+namespace ArxOne.Debian;
+
+public record DebianRepositoryDistributionSource(string Distribution, string Component, string SourceRelativeDirectory, Func<Stream, byte[]?> GetRawControl);

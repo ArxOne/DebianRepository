@@ -5,8 +5,5 @@
     <Nullable>enable</Nullable>
     <RootNamespace>ArxOne.Debian</RootNamespace>
   </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\DebReader\DebReader\DebReader.csproj" />
-  </ItemGroup>
 
 </Project>
