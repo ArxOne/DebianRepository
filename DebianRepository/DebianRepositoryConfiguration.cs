@@ -8,6 +8,9 @@ namespace ArxOne.Debian;
 public class DebianRepositoryConfiguration : IDisposable
 {
     public string WebRoot { get; set; } = "/debian";
+
+    public string PoolRoot { get; set; } = "pool/"; // is set below WebRoot
+
     public string StorageRoot { get; }
 
     public Encoding StanzaEncoding { get; set; } = new UTF8Encoding(false);
@@ -42,7 +45,7 @@ public class DebianRepositoryConfiguration : IDisposable
 
     public FileCache? FileCache { get; set; } = new("cache");
 
-    public DebianRepositoryConfiguration(string storageRoot)
+    public DebianRepositoryConfiguration(string storageRoot = "")
     {
         StorageRoot = storageRoot;
     }

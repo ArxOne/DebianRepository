@@ -143,8 +143,10 @@ public class DebianRepository
     {
         foreach (var debFilePath in Directory.GetFiles(Path.Combine(_configuration.StorageRoot, source.SourceRelativeDirectory)))
         {
-            var debRelativeFilePath = debFilePath[(_configuration.StorageRoot.Length + 1)..]
-                .Replace('\\', '/'); // because Windows
+            var debRelativeFilePath = _configuration.PoolRoot
+                                      + debFilePath[_configuration.StorageRoot.Length..]
+                                          .TrimStart('/', '\\')
+                                          .Replace('\\', '/'); // because Windows
             if (packages.PackagesByPath.TryGetValue(debRelativeFilePath, out var package))
             {
                 package.IsUsed = true;
@@ -265,6 +267,8 @@ public class DebianRepository
             yield return new($"{distributionPath}/Release.gpg", () => releaseGpgContent, textMimeType);
             yield return new($"{distributionPath}/InRelease", () => inReleaseContent, textMimeType);
         }
+
+        yield return new($"{_configuration.WebRoot}/{_configuration.PoolRoot}{{*poolPath}}", null, null, $"{_configuration.StorageRoot}/{{poolPath}}");
 
         foreach (var (_, hashAlgorithm) in hashes)
 #pragma warning disable S3966 // stoopid SonarQube

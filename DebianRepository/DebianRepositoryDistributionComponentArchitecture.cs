@@ -64,7 +64,7 @@ public class DebianRepositoryDistributionComponentArchitecture
         }), "text/plain");
     }
 
-    private byte[] WriteContent(Encoding encoding, Action<TextWriter> contentWriter)
+    private static byte[] WriteContent(Encoding encoding, Action<TextWriter> contentWriter)
     {
         using var memoryStream = new MemoryStream();
         using (var memoryWriter = new StreamWriter(memoryStream, encoding))
