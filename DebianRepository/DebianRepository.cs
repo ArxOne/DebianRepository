@@ -230,8 +230,10 @@ public class DebianRepository
 
     public IEnumerable<DebianRepositoryRoute> GetRoutes()
     {
+        using var gpg = _configuration.Gpg();
+
         var textMimeType = "text/plain";
-        var publicKey = _configuration.GpgPublicKey;
+        var publicKey = gpg.PublicKey;
         yield return new($"{_configuration.WebRoot}/{_configuration.GpgPublicKeyName}", () => publicKey, textMimeType);
 
         var hashes = new (string Name, HashAlgorithm HashAlgorithm)[]
@@ -262,7 +264,7 @@ public class DebianRepository
                     }
                 }
             }
-            var (releaseContent, releaseGpgContent, inReleaseContent) = GetReleasesContent(distribution, components, architectures, hashesList);
+            var (releaseContent, releaseGpgContent, inReleaseContent) = GetReleasesContent(distribution, components, architectures, hashesList, gpg);
             yield return new($"{distributionPath}/Release", () => releaseContent, textMimeType);
             yield return new($"{distributionPath}/Release.gpg", () => releaseGpgContent, textMimeType);
             yield return new($"{distributionPath}/InRelease", () => inReleaseContent, textMimeType);
@@ -274,12 +276,10 @@ public class DebianRepository
 #pragma warning disable S3966 // stoopid SonarQube
             hashAlgorithm.Dispose();
 #pragma warning restore S3966
-
-        _configuration.Gpg.Cleanup();
     }
 
     private (byte[] releaseContent, byte[] releaseGpgContent, byte[] inReleaseContent) GetReleasesContent(DebianRepositoryDistribution distribution,
-        HashSet<string> components, HashSet<string> architectures, Dictionary<string, List<FileHash>> hashesList)
+        HashSet<string> components, HashSet<string> architectures, Dictionary<string, List<FileHash>> hashesList, Gpg gpg)
     {
         var releaseContent = GetReleaseContent(distribution, components, architectures, hashesList);
         var tempReleases = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -288,8 +288,8 @@ public class DebianRepository
         var tempReleaseGpgPath = Path.Combine(tempReleases, "Release.gpg");
         var tempInReleasePath = Path.Combine(tempReleases, "InRelease");
         File.WriteAllBytes(tempReleasePath, releaseContent);
-        _configuration.Gpg.Invoke($"--detach-sig --armor {tempReleasePath}", ref tempReleaseGpgPath);
-        _configuration.Gpg.Invoke($"-a -s --clearsign {tempReleasePath}", ref tempInReleasePath);
+        gpg.Invoke($"--detach-sig --armor {tempReleasePath}", ref tempReleaseGpgPath);
+        gpg.Invoke($"-a -s --clearsign {tempReleasePath}", ref tempInReleasePath);
         var releaseGpgContent = File.ReadAllBytes(tempReleaseGpgPath);
         var inReleaseContent = File.ReadAllBytes(tempInReleasePath);
         Directory.Delete(tempReleases, true);

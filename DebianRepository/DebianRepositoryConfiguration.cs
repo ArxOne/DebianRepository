@@ -5,7 +5,7 @@ using ArxOne.Debian.Cache;
 
 namespace ArxOne.Debian;
 
-public class DebianRepositoryConfiguration : IDisposable
+public class DebianRepositoryConfiguration
 {
     public string WebRoot { get; set; } = "/debian";
 
@@ -17,29 +17,9 @@ public class DebianRepositoryConfiguration : IDisposable
 
     public string GpgPublicKeyName { get; set; } = "public.gpg";
 
-    private string _gpgPath = "gpg";
-    public string GpgPath
-    {
-        get { return _gpgPath; }
-        set
-        {
-            _gpg?.Dispose();
-            _gpgPath = value;
-        }
-    }
+    public string GpgPath { get; set; } = "gpg";
 
-    public string GpgPublicKey
-    {
-        get
-        {
-            string? publicKey = null;
-            Gpg.Invoke("--export --armor", ref publicKey);
-            return File.ReadAllText(publicKey);
-        }
-    }
-
-    private Gpg? _gpg;
-    public Gpg Gpg => _gpg ??= new Gpg(GpgPath);
+    public string GpgPrivateKey { get; set; }
 
     public string[] AllArchitectures { get; set; } = new string[] { "amd64", "i386", "armel", "armhf" };
 
@@ -50,36 +30,12 @@ public class DebianRepositoryConfiguration : IDisposable
         StorageRoot = storageRoot;
     }
 
-    protected virtual void Dispose(bool disposing)
+    public Gpg Gpg()
     {
-        try
-        {
-            _gpg?.Dispose();
-        }
-        // ReSharper disable once EmptyGeneralCatchClause
-#pragma warning disable S2486
-#pragma warning disable S108
-        // ReSharper disable once CatchAllClause
-        catch { }
-#pragma warning restore S2486
-#pragma warning restore S108
-    }
-
-    #region destructor
-    public void Dispose()
-    {
-        GC.SuppressFinalize(this);
-        Dispose(true);
-    }
-
-    ~DebianRepositoryConfiguration()
-    {
-        Dispose(false);
-    }
-    #endregion
-
-    public void LoadPrivateKey(string privateKey)
-    {
-        Gpg.AddPrivateKey(privateKey);
+        var gpg = new Gpg(GpgPath);
+        var gpgPrivateKey = GpgPrivateKey;
+        if (gpgPrivateKey is not null)
+            gpg.AddPrivateKey(gpgPrivateKey);
+        return gpg;
     }
 }
