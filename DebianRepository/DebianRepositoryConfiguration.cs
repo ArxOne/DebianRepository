@@ -8,7 +8,7 @@ namespace ArxOne.Debian;
 public class DebianRepositoryConfiguration : IDisposable
 {
     public string WebRoot { get; set; } = "/debian";
-    public string StorageRoot { get; } 
+    public string StorageRoot { get; }
 
     public Encoding StanzaEncoding { get; set; } = new UTF8Encoding(false);
 
@@ -37,6 +37,8 @@ public class DebianRepositoryConfiguration : IDisposable
 
     private Gpg? _gpg;
     public Gpg Gpg => _gpg ??= new Gpg(GpgPath);
+
+    public string[] AllArchitectures { get; set; } = new string[] { "amd64", "i386", "armel", "armhf" };
 
     public FileCache? FileCache { get; set; } = new("cache");
 

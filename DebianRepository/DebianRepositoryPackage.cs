@@ -1,4 +1,6 @@
-﻿using ArxOne.Debian.Version;
+﻿using System;
+using System.Collections.Generic;
+using ArxOne.Debian.Version;
 
 namespace ArxOne.Debian;
 
@@ -15,6 +17,8 @@ public class DebianRepositoryPackage
     public string? Depends { get; set; }
     public string[]? Description { get; set; }
     public string? Homepage { get; set; }
+
+    public IEnumerable<string> Architectures => Architecture.Split(" ", StringSplitOptions.RemoveEmptyEntries);
 
     private DebianVersion? _debianVersion;
     public DebianVersion? DebianVersion => _debianVersion ??= DebianVersion.TryParse(Version);

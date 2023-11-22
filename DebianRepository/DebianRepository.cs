@@ -84,7 +84,9 @@ public class DebianRepository
             var distribution = distributions.Get(source.Distribution);
             var component = distribution.Get(source.Component);
 
-            foreach (var archPackages in packages.PackagesByPath.Values.GroupBy(p => p.RepositoryPackage.Architecture))
+            foreach (var archPackages in packages.PackagesByPath.Values
+                         .SelectMany(rp => GetArchitectures(rp.RepositoryPackage.Architectures).Select(a => (Architecture: a, rp.RepositoryPackage)))
+                         .GroupBy(p => p.Architecture))
                 component.Get(archPackages.Key).AddRange(archPackages.Select(p => p.RepositoryPackage));
         }
 
@@ -103,6 +105,18 @@ public class DebianRepository
         }
 
         return BuildDistributions(distributions);
+    }
+
+    private IEnumerable<string> GetArchitectures(IEnumerable<string> architectures)
+    {
+        var architecturesSet = new HashSet<string>(architectures);
+        if (architecturesSet.Contains("all"))
+        {
+            architecturesSet.Remove("all");
+            foreach (var allArchitecture in _configuration.AllArchitectures)
+                architecturesSet.Add(allArchitecture);
+        }
+        return architecturesSet;
     }
 
     private IEnumerable<DebianRepositoryDistribution> BuildDistributions(Dictionary<string /* distribution */, Dictionary<string /* component */,
@@ -129,7 +143,8 @@ public class DebianRepository
     {
         foreach (var debFilePath in Directory.GetFiles(Path.Combine(_configuration.StorageRoot, source.SourceRelativeDirectory)))
         {
-            var debRelativeFilePath = debFilePath[(_configuration.StorageRoot.Length + 1)..];
+            var debRelativeFilePath = debFilePath[(_configuration.StorageRoot.Length + 1)..]
+                .Replace('\\', '/'); // because Windows
             if (packages.PackagesByPath.TryGetValue(debRelativeFilePath, out var package))
             {
                 package.IsUsed = true;
@@ -218,7 +233,7 @@ public class DebianRepository
         yield return ($"{_configuration.WebRoot}/{_configuration.GpgPublicKeyName}", () => publicKey, textMimeType);
         foreach (var distribution in Distributions)
         {
-            var distributionPath = $"/dists/{distribution.DistributionName}";
+            var distributionPath = $"{_configuration.WebRoot}/dists/{distribution.DistributionName}";
             var hashes = new (string Name, HashAlgorithm HashAlgorithm)[]
             {
                 ("MD5Sum", MD5.Create()),
