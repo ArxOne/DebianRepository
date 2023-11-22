@@ -77,6 +77,6 @@ public class DebianRepositoryConfiguration : IDisposable
 
     public void LoadPrivateKey(string privateKey)
     {
-        Gpg.LoadPrivateKey(privateKey);
+        Gpg.AddPrivateKey(privateKey);
     }
 }

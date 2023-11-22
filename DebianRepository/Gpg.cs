@@ -1,5 +1,6 @@
 ﻿
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 
@@ -8,26 +9,65 @@ namespace ArxOne.Debian;
 public class Gpg : IDisposable
 {
     private readonly string _gpgPath;
-    private readonly string _gpgDir;
-    private readonly string _homeDir;
-    private readonly string _tempDir;
+
+    private sealed record LocalDirectories(string Root, string Home, string Temp);
+
+    private LocalDirectories? _directories;
+
+    private readonly HashSet<string> _armoredAsciiKeys = new();
+
+    private LocalDirectories Directories
+    {
+        get
+        {
+            if (_directories is null)
+            {
+                _directories = GetDirectories();
+                foreach (var armoredAsciiKey in _armoredAsciiKeys)
+                    LoadPrivateKey(armoredAsciiKey);
+            }
+            return _directories;
+        }
+    }
+
+    private string HomeDir => Directories.Home;
+    private string TempDir => Directories.Temp;
 
     public Gpg(string gpgPath)
     {
         _gpgPath = gpgPath;
-        _gpgDir = Path.Combine(Path.GetTempPath(), $"GPG-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_gpgDir);
-        _homeDir = Path.Combine(_gpgDir, "gnupg");
-        Directory.CreateDirectory(_homeDir);
-        _tempDir = Path.Combine(_gpgDir, "temp");
-        Directory.CreateDirectory(_tempDir);
+    }
+
+    private static LocalDirectories GetDirectories()
+    {
+        var rootDirectory = Path.Combine(Path.GetTempPath(), $"GPG-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(rootDirectory);
+        var homeDirectory = Path.Combine(rootDirectory, "gnupg");
+        Directory.CreateDirectory(homeDirectory);
+        var tempDirectory = Path.Combine(rootDirectory, "temp");
+        Directory.CreateDirectory(tempDirectory);
+        return new LocalDirectories(rootDirectory, homeDirectory, tempDirectory);
     }
 
     protected virtual void Dispose(bool disposing)
     {
+        Cleanup();
+    }
+
+    public void Cleanup()
+    {
+        Safe(() => Start("gpgconf", $"--homedir \"{HomeDir}\" --kill gpg-agent").WaitForExit(5000));
+        var directories = _directories;
+        if (directories is not null)
+            Safe(() => Directory.Delete(directories.Root, true));
+        _directories = null;
+    }
+
+    private void Safe(Action action)
+    {
         try
         {
-            Directory.Delete(_gpgDir, true);
+            action();
         }
         // ReSharper disable once EmptyGeneralCatchClause
 #pragma warning disable S2486
@@ -53,10 +93,16 @@ public class Gpg : IDisposable
 
     private string GetTemp()
     {
-        return Path.Combine(_tempDir, Guid.NewGuid().ToString("N"));
+        return Path.Combine(TempDir, Guid.NewGuid().ToString("N"));
     }
 
-    public void LoadPrivateKey(string armoredAsciiKey)
+    public void AddPrivateKey(string armoredAsciiKey)
+    {
+        LoadPrivateKey(armoredAsciiKey);
+        _armoredAsciiKeys.Add(armoredAsciiKey);
+    }
+
+    private void LoadPrivateKey(string armoredAsciiKey)
     {
         var path = GetTemp();
         File.WriteAllText(path, armoredAsciiKey);
@@ -72,7 +118,7 @@ public class Gpg : IDisposable
 
     public int Invoke(string arguments)
     {
-        var gpg = Start(_gpgPath, $"--homedir \"{_homeDir}\" {arguments}");
+        var gpg = Start(_gpgPath, $"--homedir \"{HomeDir}\" {arguments}");
         gpg.WaitForExit();
         return gpg.ExitCode;
     }

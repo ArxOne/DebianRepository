@@ -264,6 +264,7 @@ public class DebianRepository
             yield return ($"{distributionPath}/Release.gpg", () => releaseGpgContent, textMimeType);
             yield return ($"{distributionPath}/InRelease", () => inReleaseContent, textMimeType);
         }
+        _configuration.Gpg.Cleanup();
     }
 
     private (byte[] releaseContent, byte[] releaseGpgContent, byte[] inReleaseContent) GetReleasesContent(DebianRepositoryDistribution distribution,
