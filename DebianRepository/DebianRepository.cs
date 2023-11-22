@@ -226,21 +226,22 @@ public class DebianRepository
         }
     }
 
-    public IEnumerable<(string Path, Delegate Handler, string? ContentType)> GetRoutes()
+    public IEnumerable<DebianRepositoryRoute> GetRoutes()
     {
         var textMimeType = "text/plain";
         var publicKey = _configuration.GpgPublicKey;
-        yield return ($"{_configuration.WebRoot}/{_configuration.GpgPublicKeyName}", () => publicKey, textMimeType);
+        yield return new($"{_configuration.WebRoot}/{_configuration.GpgPublicKeyName}", () => publicKey, textMimeType);
+
+        var hashes = new (string Name, HashAlgorithm HashAlgorithm)[]
+        {
+            ("MD5Sum", MD5.Create()),
+            ("SHA1", SHA1.Create()),
+            ("SHA256", SHA256.Create()),
+            ("SHA512", SHA512.Create()),
+        };
         foreach (var distribution in Distributions)
         {
             var distributionPath = $"{_configuration.WebRoot}/dists/{distribution.DistributionName}";
-            var hashes = new (string Name, HashAlgorithm HashAlgorithm)[]
-            {
-                ("MD5Sum", MD5.Create()),
-                ("SHA1", SHA1.Create()),
-                ("SHA256", SHA256.Create()),
-                ("SHA512", SHA512.Create()),
-            };
             var hashesList = new Dictionary<string, List<FileHash>>();
             var architectures = new HashSet<string>();
             var components = new HashSet<string>();
@@ -255,15 +256,21 @@ public class DebianRepository
                         var relativePath = $"{component.ComponentName}/binary-{architecture.Arch}/{name}";
                         foreach (var (hashName, hashAlgorithm) in hashes)
                             hashesList.Get(hashName).Add(new FileHash(hashAlgorithm.ComputeHash(content), content.Length, relativePath));
-                        yield return ($"{distributionPath}/{relativePath}", () => content, contentType);
+                        yield return new($"{distributionPath}/{relativePath}", () => content, contentType);
                     }
                 }
             }
             var (releaseContent, releaseGpgContent, inReleaseContent) = GetReleasesContent(distribution, components, architectures, hashesList);
-            yield return ($"{distributionPath}/Release", () => releaseContent, textMimeType);
-            yield return ($"{distributionPath}/Release.gpg", () => releaseGpgContent, textMimeType);
-            yield return ($"{distributionPath}/InRelease", () => inReleaseContent, textMimeType);
+            yield return new($"{distributionPath}/Release", () => releaseContent, textMimeType);
+            yield return new($"{distributionPath}/Release.gpg", () => releaseGpgContent, textMimeType);
+            yield return new($"{distributionPath}/InRelease", () => inReleaseContent, textMimeType);
         }
+
+        foreach (var (_, hashAlgorithm) in hashes)
+#pragma warning disable S3966 // stoopid SonarQube
+            hashAlgorithm.Dispose();
+#pragma warning restore S3966
+
         _configuration.Gpg.Cleanup();
     }
 
