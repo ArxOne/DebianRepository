@@ -22,6 +22,10 @@ public class DebianRepositoryDistribution
     public string DistributionName { get; }
     public IReadOnlyList<DebianRepositoryDistributionComponent> Components { get; }
 
+    public byte[] ReleaseContent { get; internal set; }
+    public byte[] ReleaseGpgContent { get; internal set; }
+    public byte[] InReleaseContent { get; internal set; }
+
     public DebianRepositoryDistribution(string distributionName, IEnumerable<DebianRepositoryDistributionComponent> components)
     {
         DistributionName = distributionName;

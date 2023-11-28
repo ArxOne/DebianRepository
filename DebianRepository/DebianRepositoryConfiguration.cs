@@ -9,7 +9,7 @@ public class DebianRepositoryConfiguration
 {
     public string WebRoot { get; set; } = "/debian";
 
-    public string PoolRoot { get; set; } = "pool/"; // is set below WebRoot
+    public string PoolRoot { get; set; } = "pool/"; // is set below WebRoot, must be separated because it is handled to redirect downloads
 
     public string StorageRoot { get; }
 
@@ -19,9 +19,9 @@ public class DebianRepositoryConfiguration
 
     public string GpgPath { get; set; } = "gpg";
 
-    public string GpgPrivateKey { get; set; }
+    public string? GpgPrivateKey { get; set; }
 
-    public string[] AllArchitectures { get; set; } = new string[] { "amd64", "i386", "armel", "armhf" };
+    public string[] AllArchitectures { get; set; } = new[] { "amd64", "i386", "armel", "armhf" };
 
     public FileCache? FileCache { get; set; } = new("cache");
 

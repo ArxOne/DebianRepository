@@ -18,6 +18,10 @@ public class DebianRepositoryDistributionComponentArchitecture
 
     public IReadOnlyList<DebianRepositoryPackage> Packages { get; }
 
+    public record File(Uri Path, byte[] Content, string ContentType);
+
+    public IReadOnlyList<File> Files { get; internal set; }
+
     public DebianRepositoryDistributionComponentArchitecture(string arch, IEnumerable<DebianRepositoryPackage> packages)
     {
         Arch = arch;

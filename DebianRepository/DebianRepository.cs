@@ -16,14 +16,20 @@ public class DebianRepository
     private readonly DebianRepositoryConfiguration _configuration;
     private readonly IReadOnlyList<DebianRepositoryDistributionSource> _sources;
 
-    public IReadOnlyList<DebianRepositoryDistribution> Distributions { get; }
+    private IReadOnlyList<DebianRepositoryDistribution>? _distributions;
+    public IReadOnlyList<DebianRepositoryDistribution> Distributions => _distributions ??= ReadDistributions().ToImmutableList();
 
-    public DebianRepository(DebianRepositoryConfiguration configuration, IEnumerable<DebianRepositoryDistributionSource> sources, string description = "Arx One Debian Repository server (https://github.com/ArxOne/DebianRepository)")
+    public DebianRepository(DebianRepositoryConfiguration configuration, IEnumerable<DebianRepositoryDistributionSource> sources,
+        string description = "Arx One Debian Repository server (https://github.com/ArxOne/DebianRepository)")
     {
         Description = description;
         _configuration = configuration;
         _sources = sources.ToImmutableList();
-        Distributions = ReadDistributions().ToImmutableList();
+    }
+
+    public void Reload()
+    {
+        _distributions = null;
     }
 
     private sealed class Packages
@@ -104,7 +110,8 @@ public class DebianRepository
                 packages.Save(_configuration.FileCache);
         }
 
-        return BuildDistributions(distributions);
+        using var gpg = _configuration.Gpg();
+        return BuildDistributions(distributions, gpg);
     }
 
     private IEnumerable<string> GetArchitectures(IEnumerable<string> architectures)
@@ -119,11 +126,55 @@ public class DebianRepository
         return architecturesSet;
     }
 
-    private IEnumerable<DebianRepositoryDistribution> BuildDistributions(Dictionary<string /* distribution */, Dictionary<string /* component */,
-        Dictionary<string /* arch */, List<DebianRepositoryPackage>>>> distributions)
+    private IEnumerable<DebianRepositoryDistribution> BuildDistributions(
+        Dictionary<string /* distribution */, Dictionary<string /* component */, Dictionary<string /* arch */, List<DebianRepositoryPackage>>>> distributions,
+        Gpg gpg)
     {
-        foreach (var distribution in distributions)
-            yield return new(distribution.Key, BuildComponents(distribution.Value));
+        foreach (var distributionName in distributions)
+        {
+            var distribution = new DebianRepositoryDistribution(distributionName.Key, BuildComponents(distributionName.Value));
+            var hashesList = new Dictionary<string, List<FileHash>>();
+            var architectures = new HashSet<string>();
+            var components = new HashSet<string>();
+            foreach (var component in distribution.Components)
+            {
+                components.Add(component.ComponentName);
+                foreach (var architecture in component.Architectures)
+                {
+                    architectures.Add(architecture.Arch);
+                    architecture.Files = GetArchitectureFiles(distribution, component, architecture, hashesList).ToImmutableArray();
+                }
+            }
+            (distribution.ReleaseContent, distribution.ReleaseGpgContent, distribution.InReleaseContent) = GetReleasesContent(distribution, components, architectures, hashesList, gpg);
+
+            yield return distribution;
+        }
+    }
+
+    private IEnumerable<DebianRepositoryDistributionComponentArchitecture.File> GetArchitectureFiles(DebianRepositoryDistribution distribution,
+        DebianRepositoryDistributionComponent component, DebianRepositoryDistributionComponentArchitecture architecture,
+        IDictionary<string, List<FileHash>> hashesList)
+    {
+        var distributionPath = $"{_configuration.WebRoot}/dists/{distribution.DistributionName}";
+        var hashes = new (string Name, HashAlgorithm HashAlgorithm)[]
+        {
+            ("MD5Sum", MD5.Create()),
+            ("SHA1", SHA1.Create()),
+            ("SHA256", SHA256.Create()),
+            ("SHA512", SHA512.Create()),
+        };
+        foreach (var (name, content, contentType) in architecture.GetFiles(distribution, component, _configuration.StanzaEncoding))
+        {
+            var relativePath = $"{component.ComponentName}/binary-{architecture.Arch}/{name}";
+            foreach (var (hashName, hashAlgorithm) in hashes)
+                hashesList.Get(hashName).Add(new FileHash(hashAlgorithm.ComputeHash(content), content.Length, relativePath));
+            yield return new DebianRepositoryDistributionComponentArchitecture.File(new Uri($"{distributionPath}/{relativePath}", UriKind.Relative), content,
+                contentType);
+        }
+        foreach (var (_, hashAlgorithm) in hashes)
+#pragma warning disable S3966 // stoopid SonarQube
+            hashAlgorithm.Dispose();
+#pragma warning restore S3966
     }
 
     private IEnumerable<DebianRepositoryDistributionComponent> BuildComponents(Dictionary<string /* component */,
@@ -204,8 +255,6 @@ public class DebianRepository
         }
     }
 
-    public DebianRepository Refresh() => new DebianRepository(_configuration, _sources);
-
     /*
      Serve:
        /key.gpg
@@ -235,47 +284,19 @@ public class DebianRepository
         var textMimeType = "text/plain";
         var publicKey = gpg.PublicKey;
         yield return new($"{_configuration.WebRoot}/{_configuration.GpgPublicKeyName}", () => publicKey, textMimeType);
-
-        var hashes = new (string Name, HashAlgorithm HashAlgorithm)[]
-        {
-            ("MD5Sum", MD5.Create()),
-            ("SHA1", SHA1.Create()),
-            ("SHA256", SHA256.Create()),
-            ("SHA512", SHA512.Create()),
-        };
         foreach (var distribution in Distributions)
         {
             var distributionPath = $"{_configuration.WebRoot}/dists/{distribution.DistributionName}";
-            var hashesList = new Dictionary<string, List<FileHash>>();
-            var architectures = new HashSet<string>();
-            var components = new HashSet<string>();
             foreach (var component in distribution.Components)
-            {
-                components.Add(component.ComponentName);
                 foreach (var architecture in component.Architectures)
-                {
-                    architectures.Add(architecture.Arch);
-                    foreach (var (name, content, contentType) in architecture.GetFiles(distribution, component, _configuration.StanzaEncoding))
-                    {
-                        var relativePath = $"{component.ComponentName}/binary-{architecture.Arch}/{name}";
-                        foreach (var (hashName, hashAlgorithm) in hashes)
-                            hashesList.Get(hashName).Add(new FileHash(hashAlgorithm.ComputeHash(content), content.Length, relativePath));
-                        yield return new($"{distributionPath}/{relativePath}", () => content, contentType);
-                    }
-                }
-            }
-            var (releaseContent, releaseGpgContent, inReleaseContent) = GetReleasesContent(distribution, components, architectures, hashesList, gpg);
-            yield return new($"{distributionPath}/Release", () => releaseContent, textMimeType);
-            yield return new($"{distributionPath}/Release.gpg", () => releaseGpgContent, textMimeType);
-            yield return new($"{distributionPath}/InRelease", () => inReleaseContent, textMimeType);
+                    foreach (var (name, content, contentType) in architecture.Files)
+                        yield return new(name.ToString(), () => content, contentType);
+            yield return new($"{distributionPath}/Release", () => distribution.ReleaseContent, textMimeType);
+            yield return new($"{distributionPath}/Release.gpg", () => distribution.ReleaseGpgContent, textMimeType);
+            yield return new($"{distributionPath}/InRelease", () => distribution.InReleaseContent, textMimeType);
         }
 
         yield return new($"{_configuration.WebRoot}/{_configuration.PoolRoot}{{*poolPath}}", null, null, $"{_configuration.StorageRoot}/{{poolPath}}");
-
-        foreach (var (_, hashAlgorithm) in hashes)
-#pragma warning disable S3966 // stoopid SonarQube
-            hashAlgorithm.Dispose();
-#pragma warning restore S3966
     }
 
     private (byte[] releaseContent, byte[] releaseGpgContent, byte[] inReleaseContent) GetReleasesContent(DebianRepositoryDistribution distribution,
