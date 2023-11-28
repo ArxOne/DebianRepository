@@ -33,13 +33,13 @@ public class Gpg : IDisposable
     private string HomeDir => Directories.Home;
     private string TempDir => Directories.Temp;
 
-    public string PublicKey
+    public byte[] PublicKeyBytes
     {
         get
         {
             string? publicKey = null;
             Invoke("--export --armor", ref publicKey);
-            return File.ReadAllText(publicKey);
+            return File.ReadAllBytes(publicKey);
         }
     }
 

@@ -277,26 +277,26 @@ public class DebianRepository
         }
     }
 
-    public IEnumerable<DebianRepositoryRoute> GetRoutes()
+    public IEnumerable<DebianRepositoryRoute> GetRoutes(Func<byte[], string, object> getWithMimeType)
     {
         using var gpg = _configuration.Gpg();
 
         var textMimeType = "text/plain";
-        var publicKey = gpg.PublicKey;
-        yield return new($"{_configuration.WebRoot}/{_configuration.GpgPublicKeyName}", () => publicKey, textMimeType);
+        var publicKey = gpg.PublicKeyBytes;
+        yield return new($"{_configuration.WebRoot}/{_configuration.GpgPublicKeyName}", () => getWithMimeType(publicKey, textMimeType));
         foreach (var distribution in Distributions)
         {
             var distributionPath = $"{_configuration.WebRoot}/dists/{distribution.DistributionName}";
             foreach (var component in distribution.Components)
                 foreach (var architecture in component.Architectures)
                     foreach (var (name, content, contentType) in architecture.Files)
-                        yield return new(name.ToString(), () => content, contentType);
-            yield return new($"{distributionPath}/Release", () => distribution.ReleaseContent, textMimeType);
-            yield return new($"{distributionPath}/Release.gpg", () => distribution.ReleaseGpgContent, textMimeType);
-            yield return new($"{distributionPath}/InRelease", () => distribution.InReleaseContent, textMimeType);
+                        yield return new(name.ToString(), () => getWithMimeType(content, contentType));
+            yield return new($"{distributionPath}/Release", () => getWithMimeType(distribution.ReleaseContent, textMimeType));
+            yield return new($"{distributionPath}/Release.gpg", () => getWithMimeType(distribution.ReleaseGpgContent, textMimeType));
+            yield return new($"{distributionPath}/InRelease", () => getWithMimeType(distribution.InReleaseContent, textMimeType));
         }
 
-        yield return new($"{_configuration.WebRoot}/{_configuration.PoolRoot}{{*poolPath}}", null, null, $"{_configuration.StorageRoot}/{{poolPath}}");
+        yield return new($"{_configuration.WebRoot}/{_configuration.PoolRoot}{{*poolPath}}", null, $"{_configuration.StorageRoot}/{{poolPath}}");
     }
 
     private (byte[] releaseContent, byte[] releaseGpgContent, byte[] inReleaseContent) GetReleasesContent(DebianRepositoryDistribution distribution,
