@@ -13,6 +13,7 @@ public class Gpg : IDisposable
 
     private sealed record LocalDirectories(string Root, string Home, string Temp);
 
+    private readonly object _directoriesLock = new();
     private LocalDirectories? _directories;
 
     private readonly HashSet<string> _armoredAsciiKeys = new();
@@ -21,13 +22,17 @@ public class Gpg : IDisposable
     {
         get
         {
-            if (_directories is null)
+            lock (_directoriesLock)
             {
-                _directories = GetDirectories();
-                foreach (var armoredAsciiKey in _armoredAsciiKeys)
-                    LoadPrivateKey(armoredAsciiKey);
+                if (_directories is null)
+                {
+                    _directories = GetDirectories();
+                    foreach (var armoredAsciiKey in _armoredAsciiKeys)
+                        LoadPrivateKey(armoredAsciiKey);
+                }
+
+                return _directories;
             }
-            return _directories;
         }
     }
 
@@ -78,15 +83,16 @@ public class Gpg : IDisposable
                 {
                     try
                     {
-                        Thread.Sleep(1000);
                         Directory.Delete(directories.Root, true);
                         if (!Directory.Exists(directories.Root))
                             break;
                         Console.WriteLine($"{directories.Root} is still not empty, retrying");
+                        Thread.Sleep(1000);
                     }
                     catch
                     {
                         Console.WriteLine($"Failed to remove {directories.Root}");
+                        Thread.Sleep(1000);
                     }
                 }
             });
@@ -128,7 +134,8 @@ public class Gpg : IDisposable
 
     public void AddPrivateKey(string armoredAsciiKey)
     {
-        LoadPrivateKey(armoredAsciiKey);
+        if (_directories is not null)
+            LoadPrivateKey(armoredAsciiKey);
         _armoredAsciiKeys.Add(armoredAsciiKey);
     }
 
