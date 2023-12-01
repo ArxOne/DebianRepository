@@ -72,31 +72,15 @@ public class Gpg : IDisposable
 
     public void Cleanup()
     {
-        Console.WriteLine("Exiting GPG agent");
-        Safe(() => Start("gpgconf", $"--homedir \"{HomeDir}\" --kill gpg-agent").WaitForExit(5000));
-        var directories = _directories;
-        if (directories is not null)
-            Safe(delegate
-            {
-                Console.WriteLine($"Removing {directories.Root}");
-                for (int retry = 0; retry < 10; retry++)
-                {
-                    try
-                    {
-                        Directory.Delete(directories.Root, true);
-                        if (!Directory.Exists(directories.Root))
-                            break;
-                        Console.WriteLine($"{directories.Root} is still not empty, retrying");
-                        Thread.Sleep(1000);
-                    }
-                    catch
-                    {
-                        Console.WriteLine($"Failed to remove {directories.Root}");
-                        Thread.Sleep(1000);
-                    }
-                }
-            });
-        _directories = null;
+        lock (_directoriesLock)
+        {
+            var directories = _directories;
+            if (directories is null)
+                return;
+            Safe(() => Start("gpgconf", $"--homedir \"{HomeDir}\" --kill gpg-agent").WaitForExit(5000));
+            Safe(() => Directory.Delete(directories.Root, true));
+            _directories = null;
+        }
     }
 
     private void Safe(Action action)
