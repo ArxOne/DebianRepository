@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 
 namespace ArxOne.Debian;
 
@@ -69,7 +70,21 @@ public class Gpg : IDisposable
         Safe(() => Start("gpgconf", $"--homedir \"{HomeDir}\" --kill gpg-agent").WaitForExit(5000));
         var directories = _directories;
         if (directories is not null)
-            Safe(() => Directory.Delete(directories.Root, true));
+            Safe(delegate
+            {
+                for (int retry = 0; ; retry++)
+                {
+                    try
+                    {
+                        Directory.Delete(directories.Root, true);
+                        break;
+                    }
+                    catch when (retry < 3)
+                    {
+                        Thread.Sleep(1000);
+                    }
+                }
+            });
         _directories = null;
     }
 
