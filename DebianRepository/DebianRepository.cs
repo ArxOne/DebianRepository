@@ -30,6 +30,7 @@ public class DebianRepository
         foreach (var sourceRelativeDirectory in _sources.Select(s => s.SourceRelativeDirectory))
         {
             var watchPath = Path.GetFullPath(Path.Combine(_configuration.StorageRoot, sourceRelativeDirectory));
+            Console.WriteLine($"Debian repository watching {watchPath}");
             var filesystemWatcher = new FileSystemWatcher(watchPath)
             {
                 EnableRaisingEvents = true,
