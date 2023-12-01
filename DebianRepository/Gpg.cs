@@ -79,8 +79,9 @@ public class Gpg : IDisposable
                         Directory.Delete(directories.Root, true);
                         break;
                     }
-                    catch when (retry < 3)
+                    catch when (retry < 10)
                     {
+                        Console.WriteLine($"Failed to remove {directories.Root}");
                         Thread.Sleep(1000);
                     }
                 }
