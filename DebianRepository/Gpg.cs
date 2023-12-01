@@ -81,7 +81,7 @@ public class Gpg : IDisposable
 
     private static void Cleanup(LocalDirectories? directories)
     {
-        Console.WriteLine("Gpg cleanup");
+        Console.WriteLine($"Gpg cleanup (root={directories?.Root})");
         if (directories is null)
             return;
         Safe(() => Start("gpgconf", $"--homedir \"{directories.Home}\" --kill gpg-agent").WaitForExit(5000));
