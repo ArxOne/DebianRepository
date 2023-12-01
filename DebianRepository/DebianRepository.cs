@@ -19,16 +19,31 @@ public class DebianRepository
     private IReadOnlyList<DebianRepositoryDistribution>? _distributions;
     public IReadOnlyList<DebianRepositoryDistribution> Distributions => _distributions ??= ReadDistributions().ToImmutableList();
 
+    private readonly Dictionary<string, FileSystemWatcher> _fileSystemWatcher = new();
+
     public DebianRepository(DebianRepositoryConfiguration configuration, IEnumerable<DebianRepositoryDistributionSource> sources,
         string description = "Arx One Debian Repository server (https://github.com/ArxOne/DebianRepository)")
     {
         Description = description;
         _configuration = configuration;
         _sources = sources.ToImmutableList();
+        foreach (var sourceRelativeDirectory in _sources.Select(s => s.SourceRelativeDirectory))
+        {
+            var watchPath = Path.GetFullPath(Path.Combine(_configuration.StorageRoot, sourceRelativeDirectory));
+            var filesystemWatcher = new FileSystemWatcher(watchPath)
+            {
+                EnableRaisingEvents = true,
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName
+            };
+            filesystemWatcher.Created += delegate { Reload(); };
+            filesystemWatcher.Deleted += delegate { Reload(); };
+            _fileSystemWatcher[sourceRelativeDirectory] = filesystemWatcher;
+        }
     }
 
     public void Reload()
     {
+        Console.WriteLine("Reloading Debian repository");
         _distributions = null;
     }
 
