@@ -74,16 +74,20 @@ public class Gpg : IDisposable
     {
         lock (_directoriesLock)
         {
-            var directories = _directories;
-            if (directories is null)
-                return;
-            Safe(() => Start("gpgconf", $"--homedir \"{HomeDir}\" --kill gpg-agent").WaitForExit(5000));
-            Safe(() => Directory.Delete(directories.Root, true));
+            Cleanup(_directories);
             _directories = null;
         }
     }
 
-    private void Safe(Action action)
+    private static void Cleanup(LocalDirectories? directories)
+    {
+        if (directories is null)
+            return;
+        Safe(() => Start("gpgconf", $"--homedir \"{directories.Home}\" --kill gpg-agent").WaitForExit(5000));
+        Safe(() => Directory.Delete(directories.Root, true));
+    }
+
+    private static void Safe(Action action)
     {
         try
         {
