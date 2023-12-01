@@ -44,7 +44,6 @@ public class DebianRepository
 
     public void Reload()
     {
-        Console.WriteLine("Reloading Debian repository");
         _distributions = null;
     }
 
