@@ -81,6 +81,7 @@ public class Gpg : IDisposable
 
     private static void Cleanup(LocalDirectories? directories)
     {
+        Console.WriteLine("Gpg cleanup");
         if (directories is null)
             return;
         Safe(() => Start("gpgconf", $"--homedir \"{directories.Home}\" --kill gpg-agent").WaitForExit(5000));
@@ -97,7 +98,10 @@ public class Gpg : IDisposable
 #pragma warning disable S2486
 #pragma warning disable S108
         // ReSharper disable once CatchAllClause
-        catch { }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Unexpected exception: {e}");
+        }
 #pragma warning restore S2486
 #pragma warning restore S108
     }
