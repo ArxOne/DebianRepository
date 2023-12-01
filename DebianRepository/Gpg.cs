@@ -72,14 +72,17 @@ public class Gpg : IDisposable
         if (directories is not null)
             Safe(delegate
             {
-                for (int retry = 0; ; retry++)
+                for (int retry = 0; retry < 10; retry++)
                 {
                     try
                     {
                         Directory.Delete(directories.Root, true);
-                        break;
+                        if (!Directory.Exists(directories.Root))
+                            break;
+                        Console.WriteLine($"{directories.Root} is still not empty, retrying");
+                        Thread.Sleep(1000);
                     }
-                    catch when (retry < 10)
+                    catch
                     {
                         Console.WriteLine($"Failed to remove {directories.Root}");
                         Thread.Sleep(1000);
