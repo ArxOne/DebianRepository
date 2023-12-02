@@ -126,7 +126,7 @@ public class DebianRepository
         }
 
         using var gpg = _configuration.Gpg();
-        return BuildDistributions(distributions, gpg);
+        return BuildDistributions(distributions, gpg).ToImmutableList();
     }
 
     private IEnumerable<string> GetArchitectures(IEnumerable<string> architectures)
@@ -294,10 +294,8 @@ public class DebianRepository
 
     public IEnumerable<DebianRepositoryRoute> GetRoutes(Func<byte[], string, object> getWithMimeType)
     {
-        using var gpg = _configuration.Gpg();
-
-        var textMimeType = "text/plain";
-        var publicKey = gpg.PublicKeyBytes;
+        const string textMimeType = "text/plain";
+        var publicKey = GetPublicKey();
         yield return new($"{_configuration.WebRoot}/{_configuration.GpgPublicKeyName}", () => getWithMimeType(publicKey, textMimeType));
         foreach (var distribution in Distributions)
         {
@@ -312,6 +310,12 @@ public class DebianRepository
         }
 
         yield return new($"{_configuration.WebRoot}/{_configuration.PoolRoot}{{*poolPath}}", null, $"{_configuration.StorageRoot}/{{poolPath}}");
+    }
+
+    private byte[] GetPublicKey()
+    {
+        using var gpg = _configuration.Gpg();
+        return gpg.PublicKeyBytes;
     }
 
     private (byte[] releaseContent, byte[] releaseGpgContent, byte[] inReleaseContent) GetReleasesContent(DebianRepositoryDistribution distribution,
