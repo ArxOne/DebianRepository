@@ -17,7 +17,7 @@ public class DebianRepository
     private readonly IReadOnlyList<DebianRepositoryDistributionSource> _sources;
 
     private IReadOnlyList<DebianRepositoryDistribution>? _distributions;
-    public IReadOnlyList<DebianRepositoryDistribution> Distributions => _distributions ??= ReadDistributions().ToImmutableList();
+    private IReadOnlyList<DebianRepositoryDistribution> Distributions => _distributions ??= ReadDistributions();
 
     private readonly Dictionary<string, FileSystemWatcher> _fileSystemWatcher = new();
 
@@ -88,7 +88,7 @@ public class DebianRepository
         }
     }
 
-    private IEnumerable<DebianRepositoryDistribution> ReadDistributions()
+    private ImmutableArray<DebianRepositoryDistribution> ReadDistributions()
     {
         var distributions = new Dictionary<string /* distribution */, Dictionary<string /* component */, Dictionary<string /* arch */, List<DebianRepositoryPackage>>>>();
         var allPackages = new Dictionary<(string Distribution, string Component), Packages>();
@@ -126,10 +126,10 @@ public class DebianRepository
         }
 
         using var gpg = _configuration.Gpg();
-        return BuildDistributions(distributions, gpg).ToImmutableList();
+        return BuildDistributions(distributions, gpg).ToImmutableArray();
     }
 
-    private IEnumerable<string> GetArchitectures(IEnumerable<string> architectures)
+    private ImmutableArray<string> GetArchitectures(IEnumerable<string> architectures)
     {
         var architecturesSet = new HashSet<string>(architectures);
         if (architecturesSet.Contains("all"))
@@ -138,7 +138,7 @@ public class DebianRepository
             foreach (var allArchitecture in _configuration.AllArchitectures)
                 architecturesSet.Add(allArchitecture);
         }
-        return architecturesSet;
+        return architecturesSet.ToImmutableArray();
     }
 
     private IEnumerable<DebianRepositoryDistribution> BuildDistributions(
