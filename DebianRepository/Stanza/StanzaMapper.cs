@@ -7,11 +7,16 @@ using System.Text.RegularExpressions;
 
 namespace ArxOne.Debian.Stanza;
 
-public class StanzaMapper
+public partial class StanzaMapper
 {
+    [GeneratedRegex(@"(?<before>[a-z])(?<after>[A-Z])")]
+    private static partial Regex LowerRegex();
+
     public IFormatProvider FormatProvider { get; set; } = CultureInfo.InvariantCulture;
 
     public Stanza Extract<T>(T o) => Extract(o, typeof(T));
+
+
 
     public Stanza Extract(object o, Type t)
     {
@@ -38,8 +43,7 @@ public class StanzaMapper
 
     private static string GetMappingName(MemberInfo propertyInfo)
     {
-        var lowerToUpper = new Regex(@"(?<before>[a-z])(?<after>[A-Z])");
-        return lowerToUpper.Replace(propertyInfo.Name, match => $"{match.Groups["before"].Value}-{match.Groups["after"].Value}");
+        return LowerRegex().Replace(propertyInfo.Name, match => $"{match.Groups["before"].Value}-{match.Groups["after"].Value}");
     }
 
     private StanzaValue? ToStanzaValue(object o)
