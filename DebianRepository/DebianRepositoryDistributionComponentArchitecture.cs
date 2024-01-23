@@ -18,14 +18,15 @@ public class DebianRepositoryDistributionComponentArchitecture
 
     public IReadOnlyList<DebianRepositoryPackage> Packages { get; }
 
-    public record File(Uri Path, byte[] Content, string ContentType);
+    public record File(string Name, byte[] Content, string ContentType);
 
-    public IReadOnlyList<File> Files { get; internal set; }
+    public IReadOnlyDictionary<string, File> Files { get; internal set; }
 
     public DebianRepositoryDistributionComponentArchitecture(string arch, IEnumerable<DebianRepositoryPackage> packages)
     {
         Arch = arch;
         Packages = packages.OrderByDescending(p => p.DebianVersion, DebianVersionComparer.Default).ToImmutableArray();
+        Files = new Dictionary<string, File>();
     }
 
     public IEnumerable<(string Name, byte[] Content, string ContentType)> GetFiles(DebianRepositoryDistribution distribution, DebianRepositoryDistributionComponent component, Encoding stanzaEncoding)

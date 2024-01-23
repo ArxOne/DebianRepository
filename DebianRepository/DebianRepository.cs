@@ -16,8 +16,8 @@ public class DebianRepository
     private readonly DebianRepositoryConfiguration _configuration;
     private readonly IReadOnlyList<DebianRepositoryDistributionSource> _sources;
 
-    private IReadOnlyList<DebianRepositoryDistribution>? _distributions;
-    private IReadOnlyList<DebianRepositoryDistribution> Distributions => _distributions ??= ReadDistributions();
+    private IReadOnlyDictionary<string, DebianRepositoryDistribution>? _distributions;
+    private IReadOnlyDictionary<string, DebianRepositoryDistribution> Distributions => _distributions ??= ReadDistributions().ToImmutableDictionary(d => d.DistributionName);
 
     private readonly Dictionary<string, FileSystemWatcher> _fileSystemWatcher = new();
 
@@ -151,13 +151,13 @@ public class DebianRepository
             var hashesList = new Dictionary<string, List<FileHash>>();
             var architectures = new HashSet<string>();
             var components = new HashSet<string>();
-            foreach (var component in distribution.Components)
+            foreach (var component in distribution.Components.Values)
             {
                 components.Add(component.ComponentName);
-                foreach (var architecture in component.Architectures)
+                foreach (var architecture in component.Architectures.Values)
                 {
                     architectures.Add(architecture.Arch);
-                    architecture.Files = GetArchitectureFiles(distribution, component, architecture, hashesList).ToImmutableArray();
+                    architecture.Files = GetArchitectureFiles(distribution, component, architecture, hashesList).ToImmutableDictionary(f => f.Name);
                 }
             }
             (distribution.ReleaseContent, distribution.ReleaseGpgContent, distribution.InReleaseContent) = GetReleasesContent(distribution, components, architectures, hashesList, gpg);
@@ -170,7 +170,6 @@ public class DebianRepository
         DebianRepositoryDistributionComponent component, DebianRepositoryDistributionComponentArchitecture architecture,
         IDictionary<string, List<FileHash>> hashesList)
     {
-        var distributionPath = $"{_configuration.WebRoot}/dists/{distribution.DistributionName}";
         var hashes = new (string Name, HashAlgorithm HashAlgorithm)[]
         {
             ("MD5Sum", MD5.Create()),
@@ -183,8 +182,7 @@ public class DebianRepository
             var relativePath = $"{component.ComponentName}/binary-{architecture.Arch}/{name}";
             foreach (var (hashName, hashAlgorithm) in hashes)
                 hashesList.Get(hashName).Add(new FileHash(hashAlgorithm.ComputeHash(content), content.Length, relativePath));
-            yield return new DebianRepositoryDistributionComponentArchitecture.File(new Uri($"{distributionPath}/{relativePath}", UriKind.Relative), content,
-                contentType);
+            yield return new DebianRepositoryDistributionComponentArchitecture.File(name, content, contentType);
         }
         foreach (var (_, hashAlgorithm) in hashes)
 #pragma warning disable S3966 // stoopid SonarQube
@@ -284,7 +282,9 @@ public class DebianRepository
        /dists/{Distribution}/{Component}/binary-{Arch}/Release
     */
 
-    private record FileHash(byte[] Hash, long Length, string Name)
+    private const string TextMimeType = "text/plain";
+
+    private sealed record FileHash(byte[] Hash, long Length, string Name)
     {
         public override string ToString()
         {
@@ -292,24 +292,51 @@ public class DebianRepository
         }
     }
 
-    public IEnumerable<DebianRepositoryRoute> GetRoutes(Func<byte[], string, object> getWithMimeType)
+    public IEnumerable<DebianRepositoryRoute> GetRoutes(Func<byte[]?, string, object> getWithMimeType)
     {
-        const string textMimeType = "text/plain";
+        var dists = $"{_configuration.WebRoot}/dists";
         var publicKey = GetPublicKey();
-        yield return new($"{_configuration.WebRoot}/{_configuration.GpgPublicKeyName}", () => getWithMimeType(publicKey, textMimeType));
-        foreach (var distribution in Distributions)
-        {
-            var distributionPath = $"{_configuration.WebRoot}/dists/{distribution.DistributionName}";
-            foreach (var component in distribution.Components)
-                foreach (var architecture in component.Architectures)
-                    foreach (var (name, content, contentType) in architecture.Files)
-                        yield return new(name.ToString(), () => getWithMimeType(content, contentType));
-            yield return new($"{distributionPath}/Release", () => getWithMimeType(distribution.ReleaseContent, textMimeType));
-            yield return new($"{distributionPath}/Release.gpg", () => getWithMimeType(distribution.ReleaseGpgContent, textMimeType));
-            yield return new($"{distributionPath}/InRelease", () => getWithMimeType(distribution.InReleaseContent, textMimeType));
-        }
-
+        var notFound = getWithMimeType(null, "");
+        yield return new($"{_configuration.WebRoot}/{_configuration.GpgPublicKeyName}", () => getWithMimeType(publicKey, TextMimeType));
+        yield return new($"{dists}/{{distribution}}/Release", (string distribution) => GetRelease(distribution, getWithMimeType) ?? notFound);
+        yield return new($"{dists}/{{distribution}}/Release.gpg", (string distribution) => GetReleaseGpg(distribution, getWithMimeType) ?? notFound);
+        yield return new($"{dists}/{{distribution}}/InRelease", (string distribution) => GetInRelease(distribution, getWithMimeType) ?? notFound);
+        yield return new($"{dists}/{{distribution}}/{{component}}/binary-{{arch}}/{{name}}", (string distribution, string component, string arch, string name) => GetFile(distribution, component, arch, name, getWithMimeType) ?? notFound);
         yield return new($"{_configuration.WebRoot}/{_configuration.PoolRoot}{{*poolPath}}", null, $"{_configuration.StorageRoot}/{{poolPath}}");
+    }
+
+    private object? GetFile(string distributionName, string componentName, string archName, string fileName, Func<byte[]?, string, object> getWithMimeType)
+    {
+        if (!Distributions.TryGetValue(distributionName, out var distribution))
+            return null;
+        if (!distribution.Components.TryGetValue(componentName, out var component))
+            return null;
+        if (!component.Architectures.TryGetValue(archName, out var architecture))
+            return null;
+        if (!architecture.Files.TryGetValue(fileName, out var file))
+            return null;
+        return getWithMimeType(file.Content, file.ContentType);
+    }
+
+    private object? GetRelease(string distributionName, Func<byte[]?, string, object> getWithMimeType)
+    {
+        if (!Distributions.TryGetValue(distributionName, out var distribution))
+            return null;
+        return getWithMimeType(distribution.ReleaseContent, TextMimeType);
+    }
+
+    private object? GetReleaseGpg(string distributionName, Func<byte[]?, string, object> getWithMimeType)
+    {
+        if (!Distributions.TryGetValue(distributionName, out var distribution))
+            return null;
+        return getWithMimeType(distribution.ReleaseGpgContent, TextMimeType);
+    }
+
+    private object? GetInRelease(string distributionName, Func<byte[]?, string, object> getWithMimeType)
+    {
+        if (!Distributions.TryGetValue(distributionName, out var distribution))
+            return null;
+        return getWithMimeType(distribution.InReleaseContent, TextMimeType);
     }
 
     private byte[] GetPublicKey()
@@ -330,8 +357,8 @@ public class DebianRepository
         File.WriteAllBytes(tempReleasePath, releaseContent);
         gpg.Invoke($"--detach-sig --armor {tempReleasePath}", ref tempReleaseGpgPath);
         gpg.Invoke($"-a -s --clearsign {tempReleasePath}", ref tempInReleasePath);
-        var releaseGpgContent = File.ReadAllBytes(tempReleaseGpgPath);
-        var inReleaseContent = File.ReadAllBytes(tempInReleasePath);
+        var releaseGpgContent = File.ReadAllBytes(tempReleaseGpgPath!);
+        var inReleaseContent = File.ReadAllBytes(tempInReleasePath!);
         Directory.Delete(tempReleases, true);
         return (releaseContent, releaseGpgContent, inReleaseContent);
     }

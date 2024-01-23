@@ -8,11 +8,11 @@ public class DebianRepositoryDistributionComponent
 {
     public string ComponentName { get; }
 
-    public IReadOnlyList<DebianRepositoryDistributionComponentArchitecture> Architectures { get; }
+    public IReadOnlyDictionary<string, DebianRepositoryDistributionComponentArchitecture> Architectures { get; }
 
     public DebianRepositoryDistributionComponent(string componentNameName, IEnumerable<DebianRepositoryDistributionComponentArchitecture> architectures)
     {
         ComponentName = componentNameName;
-        Architectures = architectures.ToImmutableArray();
+        Architectures = architectures.ToImmutableDictionary(a => a.Arch);
     }
 }

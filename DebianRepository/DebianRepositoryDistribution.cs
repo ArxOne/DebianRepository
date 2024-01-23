@@ -20,7 +20,7 @@ public class DebianRepositoryDistribution
      */
 
     public string DistributionName { get; }
-    public IReadOnlyList<DebianRepositoryDistributionComponent> Components { get; }
+    public IReadOnlyDictionary<string, DebianRepositoryDistributionComponent> Components { get; }
 
     public byte[] ReleaseContent { get; internal set; }
     public byte[] ReleaseGpgContent { get; internal set; }
@@ -29,6 +29,6 @@ public class DebianRepositoryDistribution
     public DebianRepositoryDistribution(string distributionName, IEnumerable<DebianRepositoryDistributionComponent> components)
     {
         DistributionName = distributionName;
-        Components = components.ToImmutableArray();
+        Components = components.ToImmutableDictionary(c => c.ComponentName);
     }
 }
