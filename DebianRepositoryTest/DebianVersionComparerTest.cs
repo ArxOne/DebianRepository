@@ -38,6 +38,7 @@ public class DebianVersionComparerTest
     [TestCase("1.1", "1.0", 1)]
     [TestCase("1.1", "1.0", 1)]
     [TestCase("2.06-3~deb11u6", "2.06-3~deb11u7", -1)]
+    [TestCase("10.0.17824.1055", "10.0.17907.1539", -1)]
     public void Compare(string a, string b, int expectedSign)
     {
         var aVersion = DebianVersion.TryParse(a);
