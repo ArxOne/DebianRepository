@@ -190,14 +190,14 @@ public class DebianRepository
 #pragma warning restore S3966
     }
 
-    private IEnumerable<DebianRepositoryDistributionComponent> BuildComponents(Dictionary<string /* component */,
+    private static IEnumerable<DebianRepositoryDistributionComponent> BuildComponents(Dictionary<string /* component */,
         Dictionary<string /* arch */, List<DebianRepositoryPackage>>> components)
     {
         foreach (var component in components)
             yield return new(component.Key, BuildArchitectures(component.Value));
     }
 
-    private IEnumerable<DebianRepositoryDistributionComponentArchitecture> BuildArchitectures(Dictionary<string /* arch */, List<DebianRepositoryPackage>> architectures)
+    private static IEnumerable<DebianRepositoryDistributionComponentArchitecture> BuildArchitectures(Dictionary<string /* arch */, List<DebianRepositoryPackage>> architectures)
     {
         foreach (var architecture in architectures)
             yield return new(architecture.Key, architecture.Value);
