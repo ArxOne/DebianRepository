@@ -1,5 +1,5 @@
-﻿using System;
-using System.IO;
+﻿
+using System;
 using System.Text;
 using ArxOne.Debian.Cache;
 
@@ -15,7 +15,7 @@ public class DebianRepositoryConfiguration
 
     public Encoding StanzaEncoding { get; set; } = new UTF8Encoding(false);
 
-    public string GpgPublicKeyName { get; set; } = "public.gpg";
+    public string GpgPublicKeyFileName { get; set; } = "public.gpg";
 
     public string GpgPath { get; set; } = "gpg";
 
@@ -24,6 +24,8 @@ public class DebianRepositoryConfiguration
     public string[] AllArchitectures { get; set; } = new[] { "amd64", "i386", "armel", "armhf" };
 
     public FileCache? FileCache { get; set; } = new("cache");
+
+    public Func<Uri>? GetRequestUri { get; set; }
 
     public DebianRepositoryConfiguration(string storageRoot = "")
     {

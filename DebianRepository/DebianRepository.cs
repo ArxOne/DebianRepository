@@ -5,6 +5,7 @@ using ArxOne.Debian.Stanza;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 using ArxOne.Debian.Cache;
 using ArxOne.Debian.Utility;
 
@@ -126,7 +127,7 @@ public class DebianRepository
         }
 
         using var gpg = _configuration.Gpg();
-        return BuildDistributions(distributions, gpg).ToImmutableArray();
+        return [.. BuildDistributions(distributions, gpg)];
     }
 
     private ImmutableArray<string> GetArchitectures(IEnumerable<string> architectures)
@@ -138,7 +139,7 @@ public class DebianRepository
             foreach (var allArchitecture in _configuration.AllArchitectures)
                 architecturesSet.Add(allArchitecture);
         }
-        return architecturesSet.ToImmutableArray();
+        return [.. architecturesSet];
     }
 
     private IEnumerable<DebianRepositoryDistribution> BuildDistributions(
@@ -271,6 +272,7 @@ public class DebianRepository
     /*
      Serve:
        /key.gpg
+       /{Distribution}/*.source (comes from DebianRepositoryConfiguration.SourceFileName)
        /dists/{Distribution}
        /dists/{Distribution}/Release
        /dists/{Distribution}/Release.gpg
@@ -296,13 +298,50 @@ public class DebianRepository
     {
         var dists = $"{_configuration.WebRoot}/dists";
         var publicKey = GetPublicKey();
+        var publicKeyBytes = Encoding.ASCII.GetBytes(string.Join('\n', publicKey));
         var notFound = getWithMimeType(null, "");
-        yield return new($"{_configuration.WebRoot}/{_configuration.GpgPublicKeyName}", () => getWithMimeType(publicKey, TextMimeType));
+        if (_configuration.GetRequestUri is not null)
+        {
+            foreach (var sourcesByDistribution in _sources.GroupBy(s => s.Distribution))
+            {
+                foreach (var sourceFileName in sourcesByDistribution.Select(s => s.SourceFileName).Where(n => n is not null))
+                {
+                    yield return new($"{_configuration.WebRoot}/{sourceFileName}", () => GetDeb822(sourcesByDistribution.Key, sourcesByDistribution, publicKey, getWithMimeType));
+                }
+            }
+        }
+        yield return new($"{_configuration.WebRoot}/{_configuration.GpgPublicKeyFileName}", () => getWithMimeType(publicKeyBytes, TextMimeType));
         yield return new($"{dists}/{{distribution}}/Release", (string distribution) => GetRelease(distribution, getWithMimeType) ?? notFound);
         yield return new($"{dists}/{{distribution}}/Release.gpg", (string distribution) => GetReleaseGpg(distribution, getWithMimeType) ?? notFound);
         yield return new($"{dists}/{{distribution}}/InRelease", (string distribution) => GetInRelease(distribution, getWithMimeType) ?? notFound);
         yield return new($"{dists}/{{distribution}}/{{component}}/binary-{{arch}}/{{name}}", (string distribution, string component, string arch, string name) => GetFile(distribution, component, arch, name, getWithMimeType) ?? notFound);
         yield return new($"{_configuration.WebRoot}/{_configuration.PoolRoot}{{*poolPath}}", null, $"{_configuration.StorageRoot}/{{poolPath}}");
+    }
+
+    private object GetDeb822(string distribution, IEnumerable<DebianRepositoryDistributionSource> sources, string[]? gpgPublicKey, Func<byte[]?, string, object> getWithMimeType)
+    {
+        var sourceBuilder = new StringBuilder();
+        sourceBuilder.Append("Types: deb\n");
+        sourceBuilder.AppendFormat("URIs: {0}\n", new UriBuilder(_configuration.GetRequestUri()) { Path = _configuration.WebRoot }.Uri);
+        sourceBuilder.AppendFormat("Suites: {0}\n", distribution);
+        // not sure this is reliable
+        sourceBuilder.AppendFormat("Components: {0}\n", string.Join(" ", sources.Select(s => s.Component).Distinct()));
+        if (gpgPublicKey is not null)
+        {
+            sourceBuilder.Append("Signed-by:\n");
+            foreach (var keyLine in gpgPublicKey)
+            {
+                if (string.IsNullOrEmpty(keyLine))
+                {
+                    sourceBuilder.Append(" .\n");
+                    continue;
+                }
+
+                sourceBuilder.AppendFormat(" {0}\n", keyLine);
+            }
+        }
+
+        return getWithMimeType(Encoding.UTF8.GetBytes(sourceBuilder.ToString()), "text/plain");
     }
 
     private object? GetFile(string distributionName, string componentName, string archName, string fileName, Func<byte[]?, string, object> getWithMimeType)
@@ -339,10 +378,10 @@ public class DebianRepository
         return getWithMimeType(distribution.InReleaseContent, TextMimeType);
     }
 
-    private byte[] GetPublicKey()
+    private string[] GetPublicKey()
     {
         using var gpg = _configuration.Gpg();
-        return gpg.PublicKeyBytes;
+        return gpg.PublicKey;
     }
 
     private (byte[] releaseContent, byte[] releaseGpgContent, byte[] inReleaseContent) GetReleasesContent(DebianRepositoryDistribution distribution,
