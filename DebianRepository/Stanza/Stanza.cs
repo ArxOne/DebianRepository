@@ -13,7 +13,7 @@ namespace ArxOne.Debian.Stanza;
 public class Stanza : IDictionary<string, StanzaValue>
 {
     private static readonly IEqualityComparer<string> Comparer = StringComparer.InvariantCultureIgnoreCase;
-    private readonly List<string> _keys = new();
+    private readonly List<string> _keys = [];
     private readonly IDictionary<string, StanzaValue> _dictionary = new Dictionary<string, StanzaValue>(Comparer);
 
     public int Count => _dictionary.Count;

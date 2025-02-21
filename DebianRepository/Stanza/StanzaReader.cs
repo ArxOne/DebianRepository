@@ -45,7 +45,7 @@ public class StanzaReader
                 if (currentKey is not null)
                     yield return (currentKey, values);
                 currentKey = key;
-                values = new() { value };
+                values = [value];
             }
             else
             {

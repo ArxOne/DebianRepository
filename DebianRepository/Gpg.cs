@@ -16,7 +16,7 @@ public class Gpg : IDisposable
     private readonly object _directoriesLock = new();
     private LocalDirectories? _directories;
 
-    private readonly HashSet<string> _armoredAsciiKeys = new();
+    private readonly HashSet<string> _armoredAsciiKeys = [];
 
     private LocalDirectories Directories
     {
