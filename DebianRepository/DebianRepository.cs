@@ -18,7 +18,7 @@ public class DebianRepository
     private readonly IReadOnlyList<DebianRepositoryDistributionSource> _sources;
 
     private IReadOnlyDictionary<string, DebianRepositoryDistribution>? _distributions;
-    private IReadOnlyDictionary<string, DebianRepositoryDistribution> Distributions => _distributions ??= ReadDistributions().ToImmutableDictionary(d => d.DistributionName);
+    private IReadOnlyDictionary<string, DebianRepositoryDistribution> Distributions => _distributions ??= LoadDistributions();
 
     private readonly Dictionary<string, FileSystemWatcher> _fileSystemWatcher = new();
 
@@ -45,7 +45,13 @@ public class DebianRepository
 
     public void Reload()
     {
-        _distributions = null;
+        if (_distributions is not null)
+            _distributions = LoadDistributions();
+    }
+
+    private ImmutableDictionary<string, DebianRepositoryDistribution> LoadDistributions()
+    {
+        return ReadDistributions().ToImmutableDictionary(d => d.DistributionName);
     }
 
     private sealed class Packages
