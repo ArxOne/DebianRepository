@@ -252,8 +252,9 @@ public class DebianRepository
                     packages.IsDirty = true;
                 }
             }
-            catch (FormatException)
+            catch (Exception e) when (e is FormatException or EndOfStreamException)
             {
+                Console.WriteLine($"Unexpected error on file {debRelativeFilePath}: {e}");
             }
         }
     }
