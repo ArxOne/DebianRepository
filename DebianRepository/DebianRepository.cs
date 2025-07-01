@@ -23,10 +23,10 @@ public class DebianRepository
     private readonly Dictionary<string, FileSystemWatcher> _fileSystemWatcher = new();
 
     public DebianRepository(DebianRepositoryConfiguration configuration, IEnumerable<DebianRepositoryDistributionSource> sources,
-        string description = "Arx One Debian Repository server (https://github.com/ArxOne/DebianRepository)")
+        string? description = null)
     {
-        Description = description;
         _configuration = configuration;
+        Description = description ?? $"{_configuration.Brand} Debian Repository server (https://github.com/ArxOne/DebianRepository)";
         _sources = sources.ToImmutableList();
         foreach (var sourceRelativeDirectory in _sources.Select(s => s.SourceRelativeDirectory))
         {

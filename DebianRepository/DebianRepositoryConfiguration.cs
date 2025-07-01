@@ -11,6 +11,7 @@ public class DebianRepositoryConfiguration
 
     public string PoolRoot { get; set; } = "pool/"; // is set below WebRoot, must be separated because it is handled to redirect downloads
 
+    public string Brand { get; set; } = "MyRepo";
     public string StorageRoot { get; }
 
     public Encoding StanzaEncoding { get; set; } = new UTF8Encoding(false);
