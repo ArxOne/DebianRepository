@@ -212,7 +212,19 @@ public class DebianRepository
 
     private void LoadPackages(DebianRepositoryDistributionSource source, Packages packages)
     {
-        foreach (var debFilePath in Directory.GetFiles(Path.Combine(_configuration.StorageRoot, source.SourceRelativeDirectory)))
+        var debFilesDirectory = Path.Combine(_configuration.StorageRoot, source.SourceRelativeDirectory);
+        string[] debFilePaths;
+        try
+        {
+            debFilePaths = Directory.GetFiles(debFilesDirectory);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error while reading {debFilesDirectory}: {e}");
+            return;
+        }
+
+        foreach (var debFilePath in debFilePaths)
         {
             var debRelativeFilePath = _configuration.PoolRoot
                                       + debFilePath[_configuration.StorageRoot.Length..]
