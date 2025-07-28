@@ -212,18 +212,7 @@ public class DebianRepository
 
     private void LoadPackages(DebianRepositoryDistributionSource source, Packages packages)
     {
-        var debFilesDirectory = Path.Combine(_configuration.StorageRoot, source.SourceRelativeDirectory);
-        string[] debFilePaths;
-        try
-        {
-            debFilePaths = Directory.GetFiles(debFilesDirectory);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"Error while reading {debFilesDirectory}: {e}");
-            return;
-        }
-
+        var debFilePaths = GetPackagesFilePaths(source);
         foreach (var debFilePath in debFilePaths)
         {
             var debRelativeFilePath = _configuration.PoolRoot
@@ -272,6 +261,20 @@ public class DebianRepository
             {
                 Console.WriteLine($"Unexpected error on file {debRelativeFilePath}: {e}");
             }
+        }
+    }
+
+    private string[] GetPackagesFilePaths(DebianRepositoryDistributionSource source)
+    {
+        var debFilesDirectory = Path.Combine(_configuration.StorageRoot, source.SourceRelativeDirectory);
+        try
+        {
+            return Directory.GetFiles(debFilesDirectory);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error while reading {debFilesDirectory}: {e}");
+            return [];
         }
     }
 
