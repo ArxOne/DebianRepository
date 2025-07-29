@@ -12,6 +12,7 @@ public class DebianRepositoryConfiguration
     public string PoolRoot { get; set; } = "pool/"; // is set below WebRoot, must be separated because it is handled to redirect downloads
 
     public string Brand { get; set; } = "MyRepo";
+    public string CacheName { get; set; } = "cache";
     public string StorageRoot { get; }
 
     public Encoding StanzaEncoding { get; set; } = new UTF8Encoding(false);
@@ -24,7 +25,13 @@ public class DebianRepositoryConfiguration
 
     public string[] AllArchitectures { get; set; } = ["amd64", "i386", "armel", "armhf"];
 
-    public FileCache? FileCache { get; set; } = new("cache");
+    private FileCache? _fileCache ;
+
+    public FileCache? FileCache
+    {
+        get { return _fileCache ??= new(CacheName); }
+        set { _fileCache = value; }
+    }
 
     public Func<Uri>? GetRequestUri { get; set; }
 
