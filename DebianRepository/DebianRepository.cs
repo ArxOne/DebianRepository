@@ -17,6 +17,7 @@ public class DebianRepository
     private readonly DebianRepositoryConfiguration _configuration;
     private readonly IReadOnlyList<DebianRepositoryDistributionSource> _sources;
 
+    private readonly object _distributionsLock = new();
     private IReadOnlyDictionary<string, DebianRepositoryDistribution>? _distributions;
     private IReadOnlyDictionary<string, DebianRepositoryDistribution> Distributions => _distributions ??= LoadDistributions();
 
@@ -51,7 +52,8 @@ public class DebianRepository
 
     private ImmutableDictionary<string, DebianRepositoryDistribution> LoadDistributions()
     {
-        return ReadDistributions().ToImmutableDictionary(d => d.DistributionName);
+        lock (_distributionsLock)
+            return ReadDistributions().ToImmutableDictionary(d => d.DistributionName);
     }
 
     private sealed class Packages
