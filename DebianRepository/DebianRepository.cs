@@ -177,18 +177,17 @@ public class DebianRepository
 
     private static HashAlgorithm CreateHashAlgorithm(HashAlgorithmName algorithmName)
     {
-        // Using the name property to match against known algorithms
-        string name = algorithmName.Name?.ToUpperInvariant() ?? string.Empty;
-
-        return name switch
-        {
-            "SHA1" => SHA1.Create(),
-            "SHA256" => SHA256.Create(),
-            "SHA384" => SHA384.Create(),
-            "SHA512" => SHA512.Create(),
-            "MD5" => MD5.Create(),
-            _ => throw new NotSupportedException($"Hash algorithm '{algorithmName.Name}' is not supported")
-        };
+        if (algorithmName == HashAlgorithmName.MD5)
+            return MD5.Create();
+        if (algorithmName == HashAlgorithmName.SHA1)
+            return SHA1.Create();
+        if (algorithmName == HashAlgorithmName.SHA256)
+            return SHA256.Create();
+        if (algorithmName == HashAlgorithmName.SHA384)
+            return SHA384.Create();
+        if (algorithmName == HashAlgorithmName.SHA512)
+            return SHA512.Create();
+        throw new NotSupportedException($"Hash algorithm '{algorithmName.Name}' is not supported");
     }
 
     private IEnumerable<DebianRepositoryDistributionComponentArchitecture.File> GetArchitectureFiles(DebianRepositoryDistribution distribution,
@@ -250,10 +249,21 @@ public class DebianRepository
                 if (control is not null)
                 {
                     debStream.Seek(0, SeekOrigin.Begin);
-                    var hashes = _configuration.Hashes.Select(CreateHashAlgorithm).ToArray();
-                    (control.MD5sum, control.SHA1, control.SHA256, control.SHA512) = ComputeHashes(debStream, hashes);
+                    var hashes = _configuration.Hashes.Select(h => (Name: h, Hash: CreateHashAlgorithm(h))).ToArray();
+                    var computedHashes = ComputeHashes(debStream, hashes);
+                    foreach (var computedHash in computedHashes)
+                    {
+                        if (computedHash.Name == HashAlgorithmName.MD5)
+                            control.MD5sum = computedHash.Hash;
+                        if (computedHash.Name == HashAlgorithmName.SHA1)
+                            control.SHA1 = computedHash.Hash;
+                        if (computedHash.Name == HashAlgorithmName.SHA256)
+                            control.SHA256 = computedHash.Hash;
+                        if (computedHash.Name == HashAlgorithmName.SHA512)
+                            control.SHA512 = computedHash.Hash;
+                    }
                     foreach (var hashAlgorithm in hashes)
-                        hashAlgorithm.Dispose();
+                        hashAlgorithm.Hash.Dispose();
 
                     control.Filename = debRelativeFilePath;
                     control.Size = debStream.Length;
@@ -288,7 +298,7 @@ public class DebianRepository
         }
     }
 
-    private static IEnumerable<byte[]> ComputeHashes(Stream s, params HashAlgorithm[] hashAlgorithms)
+    private static IEnumerable<(HashAlgorithmName Name, byte[] Hash)> ComputeHashes(Stream s, params (HashAlgorithmName Name, HashAlgorithm Algorithm)[] hashAlgorithms)
     {
         var buffer = new byte[1 << 20];
         for (; ; )
@@ -297,11 +307,11 @@ public class DebianRepository
             if (bytesRead == 0)
             {
                 foreach (var hashAlgorithm in hashAlgorithms)
-                    hashAlgorithm.TransformFinalBlock(buffer, 0, 0);
-                return hashAlgorithms.Select(h => h.Hash!);
+                    hashAlgorithm.Algorithm.TransformFinalBlock(buffer, 0, 0);
+                return hashAlgorithms.Select(h => (h.Name, h.Algorithm.Hash!));
             }
             foreach (var hashAlgorithm in hashAlgorithms)
-                hashAlgorithm.TransformBlock(buffer, 0, bytesRead, null, 0);
+                hashAlgorithm.Algorithm.TransformBlock(buffer, 0, bytesRead, null, 0);
         }
     }
 
