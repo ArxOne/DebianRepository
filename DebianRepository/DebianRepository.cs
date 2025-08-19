@@ -175,17 +175,27 @@ public class DebianRepository
         }
     }
 
+    private static HashAlgorithm CreateHashAlgorithm(HashAlgorithmName algorithmName)
+    {
+        // Using the name property to match against known algorithms
+        string name = algorithmName.Name?.ToUpperInvariant() ?? string.Empty;
+
+        return name switch
+        {
+            "SHA1" => SHA1.Create(),
+            "SHA256" => SHA256.Create(),
+            "SHA384" => SHA384.Create(),
+            "SHA512" => SHA512.Create(),
+            "MD5" => MD5.Create(),
+            _ => throw new NotSupportedException($"Hash algorithm '{algorithmName.Name}' is not supported")
+        };
+    }
+
     private IEnumerable<DebianRepositoryDistributionComponentArchitecture.File> GetArchitectureFiles(DebianRepositoryDistribution distribution,
         DebianRepositoryDistributionComponent component, DebianRepositoryDistributionComponentArchitecture architecture,
         IDictionary<string, List<FileHash>> hashesList)
     {
-        var hashes = new (string Name, HashAlgorithm HashAlgorithm)[]
-        {
-            ("MD5Sum", MD5.Create()),
-            ("SHA1", SHA1.Create()),
-            ("SHA256", SHA256.Create()),
-            ("SHA512", SHA512.Create()),
-        };
+        var hashes = _configuration.Hashes.Select(h => (Name: h.Name, HashAlgorithm: CreateHashAlgorithm(h))).ToImmutableArray();
         foreach (var (name, content, contentType) in architecture.GetFiles(distribution, component, _configuration.StanzaEncoding))
         {
             var relativePath = $"{component.ComponentName}/binary-{architecture.Arch}/{name}";
@@ -240,12 +250,10 @@ public class DebianRepository
                 if (control is not null)
                 {
                     debStream.Seek(0, SeekOrigin.Begin);
-                    using var md5Hash = MD5.Create();
-                    using var sha1Hash = SHA1.Create();
-                    using var sha256Hash = SHA256.Create();
-                    using var sha512Hash = SHA512.Create();
-
-                    (control.MD5sum, control.SHA1, control.SHA256, control.SHA512) = ComputeHashes(debStream, md5Hash, sha1Hash, sha256Hash, sha512Hash);
+                    var hashes = _configuration.Hashes.Select(CreateHashAlgorithm).ToArray();
+                    (control.MD5sum, control.SHA1, control.SHA256, control.SHA512) = ComputeHashes(debStream, hashes);
+                    foreach (var hashAlgorithm in hashes)
+                        hashAlgorithm.Dispose();
 
                     control.Filename = debRelativeFilePath;
                     control.Size = debStream.Length;

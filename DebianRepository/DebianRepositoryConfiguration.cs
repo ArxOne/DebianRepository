@@ -5,6 +5,8 @@ using ArxOne.Debian.Cache;
 
 namespace ArxOne.Debian;
 
+using System.Security.Cryptography;
+
 public class DebianRepositoryConfiguration
 {
     public string WebRoot { get; set; } = "/debian";
@@ -25,7 +27,9 @@ public class DebianRepositoryConfiguration
 
     public string[] AllArchitectures { get; set; } = ["amd64", "i386", "armel", "armhf"];
 
-    private FileCache? _fileCache ;
+    private FileCache? _fileCache;
+
+    public HashAlgorithmName[] Hashes { get; set; } = { HashAlgorithmName.SHA256, HashAlgorithmName.SHA512 };
 
     public FileCache? FileCache
     {
