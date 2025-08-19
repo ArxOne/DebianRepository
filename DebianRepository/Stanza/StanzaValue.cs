@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace ArxOne.Debian.Stanza;
@@ -14,13 +13,13 @@ public class StanzaValue
 
     public StanzaValue(IEnumerable<string> lines)
     {
-        Lines = lines.ToImmutableArray();
+        Lines = [.. lines];
     }
 
     public StanzaValue(params string[] lines)
     {
-        Lines = lines.ToImmutableArray();
+        Lines = [.. lines];
     }
 
-    public static implicit operator StanzaValue(string s) => new StanzaValue(s);
+    public static implicit operator StanzaValue?(string? s) => s is null ? null : new(s);
 }

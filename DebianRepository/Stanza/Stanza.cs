@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 
 namespace ArxOne.Debian.Stanza;
@@ -19,8 +18,8 @@ public class Stanza : IDictionary<string, StanzaValue>
     public int Count => _dictionary.Count;
     public bool IsReadOnly => false;
 
-    public ICollection<string> Keys => GetOrderedKeyValuePairs().Select(kv => kv.Key).ToImmutableArray();
-    public ICollection<StanzaValue> Values => GetOrderedKeyValuePairs().Select(kv => kv.Value).ToImmutableArray();
+    public ICollection<string> Keys => [..GetOrderedKeyValuePairs().Select(kv => kv.Key)];
+    public ICollection<StanzaValue> Values => [..GetOrderedKeyValuePairs().Select(kv => kv.Value)];
 
     public StanzaValue this[string key]
     {
