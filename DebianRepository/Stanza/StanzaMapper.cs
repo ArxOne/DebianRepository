@@ -14,15 +14,20 @@ public partial class StanzaMapper
 
     public IFormatProvider FormatProvider { get; set; } = CultureInfo.InvariantCulture;
 
-    public Stanza Extract<T>(T o) => Extract(o, typeof(T));
+    public Stanza? Extract<T>(T o) => Extract(o, typeof(T));
 
-
-
-    public Stanza Extract(object o, Type t)
+    public Stanza? Extract(object? o, Type t)
     {
+        if (o is null)
+            return null;
         var stanza = new Stanza();
         foreach (var (propertyInfo, name) in GetProperties(t))
-            stanza[name] = ToStanzaValue(propertyInfo.GetValue(o));
+        {
+            var stanzaValue = ToStanzaValue(propertyInfo.GetValue(o));
+            if (stanzaValue is not null)
+                stanza[name] = stanzaValue;
+        }
+
         return stanza;
     }
 
@@ -46,7 +51,7 @@ public partial class StanzaMapper
         return LowerRegex().Replace(propertyInfo.Name, match => $"{match.Groups["before"].Value}-{match.Groups["after"].Value}");
     }
 
-    private StanzaValue? ToStanzaValue(object o)
+    private StanzaValue? ToStanzaValue(object? o)
     {
         return o switch
         {

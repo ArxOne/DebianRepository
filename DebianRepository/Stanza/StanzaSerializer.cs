@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Reflection;
 
 namespace ArxOne.Debian.Stanza;
 
@@ -9,10 +8,12 @@ public class StanzaSerializer
     private readonly StanzaMapper _mapper = new();
 
     public void Serialize<T>(T o, TextWriter textWriter) => Serialize(o, typeof(T), textWriter);
-    public void Serialize(object o, Type t, TextWriter textWriter)
+    public void Serialize(object? o, Type t, TextWriter textWriter)
     {
         var writer = new StanzaWriter(textWriter);
         var stanza = _mapper.Extract(o, t);
+        if(stanza is null)
+            return;
         writer.Write(stanza);
     }
 

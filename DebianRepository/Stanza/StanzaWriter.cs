@@ -16,6 +16,8 @@ public class StanzaWriter
     {
         foreach (var (key, value) in stanza)
         {
+            if (value is null)
+                continue;
             _textWriter.WriteLine($"{key}: {value.FirstLine}");
             foreach (var remainingLine in value.Lines.Skip(1))
                 _textWriter.WriteLine($" {remainingLine}");
