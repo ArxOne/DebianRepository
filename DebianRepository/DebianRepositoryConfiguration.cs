@@ -7,29 +7,29 @@ namespace ArxOne.Debian;
 
 using System.Security.Cryptography;
 
-public class DebianRepositoryConfiguration
+public record DebianRepositoryConfiguration
 {
-    public string WebRoot { get; set; } = "/debian";
+    public string WebRoot { get; init; } = "/debian";
 
-    public string PoolRoot { get; set; } = "pool/"; // is set below WebRoot, must be separated because it is handled to redirect downloads
+    public string PoolRoot { get; init; } = "pool/"; // is set below WebRoot, must be separated because it is handled to redirect downloads
 
-    public string Brand { get; set; } = "MyRepo";
-    public string CacheName { get; set; } = "cache";
-    public string StorageRoot { get; }
+    public string Brand { get; init; } = "MyRepo";
+    public string CacheName { get; init; } = "cache";
+    public string StorageRoot { get; init; }
 
-    public Encoding StanzaEncoding { get; set; } = new UTF8Encoding(false);
+    public Encoding StanzaEncoding { get; init; } = new UTF8Encoding(false);
 
-    public string GpgPublicKeyFileName { get; set; } = "public.gpg";
+    public string GpgPublicKeyFileName { get; init; } = "public.gpg";
 
-    public string GpgPath { get; set; } = "gpg";
+    public string GpgPath { get; init; } = "gpg";
 
-    public string? GpgPrivateKey { get; set; }
+    public string? GpgPrivateKey { get; init; }
 
-    public string[] AllArchitectures { get; set; } = ["amd64", "i386", "armel", "armhf"];
+    public string[] AllArchitectures { get; init; } = ["amd64", "i386", "armel", "armhf"];
 
     private FileCache? _fileCache;
 
-    public HashAlgorithmName[] Hashes { get; set; } = { HashAlgorithmName.SHA256, HashAlgorithmName.SHA512 };
+    public HashAlgorithmName[] Hashes { get; init; } = { HashAlgorithmName.SHA256, HashAlgorithmName.SHA512 };
 
     public FileCache? FileCache
     {
@@ -37,7 +37,7 @@ public class DebianRepositoryConfiguration
         set { _fileCache = value; }
     }
 
-    public Func<Uri>? GetRequestUri { get; set; }
+    public Func<Uri>? GetRequestUri { get; init; }
 
     public DebianRepositoryConfiguration(string storageRoot = "")
     {
