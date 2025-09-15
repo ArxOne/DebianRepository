@@ -1,21 +1,29 @@
 ﻿using System;
 using System.IO;
+using System.Xml.Linq;
 
 namespace ArxOne.Debian.Cache;
 
 public class FileCache
 {
-    private readonly string _rootPath;
     private readonly object _lock = new();
 
-    public FileCache(string name, string? rootPath = null)
+    private readonly string _cacheName;
+
+    public string CacheName
     {
-        _rootPath = rootPath ?? Path.Combine(Path.GetTempPath(), "debian-repository", name);
+        get { return _cacheName; }
+        init
+        {
+            CachePath = Path.Combine(Path.GetTempPath(), "debian-repository", _cacheName = value);
+        }
     }
+
+    public string CachePath { get; init; }
 
     private string GetPath(FileCacheReference reference)
     {
-        var path = Path.Combine(_rootPath, reference.Distribution);
+        var path = Path.Combine(CachePath, reference.Distribution);
         if (reference.Component is not null)
         {
             path = Path.Combine(path, reference.Component);
@@ -58,7 +66,7 @@ public class FileCache
         File.Delete(path);
         try
         {
-            for (var parentDirectory = Path.GetDirectoryName(path); parentDirectory != _rootPath; parentDirectory = Path.GetDirectoryName(parentDirectory))
+            for (var parentDirectory = Path.GetDirectoryName(path); parentDirectory != CachePath; parentDirectory = Path.GetDirectoryName(parentDirectory))
             {
                 Directory.Delete(parentDirectory);
             }

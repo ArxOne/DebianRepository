@@ -33,8 +33,8 @@ public record DebianRepositoryConfiguration
 
     public FileCache? FileCache
     {
-        get { return _fileCache ??= new(CacheName); }
-        set { _fileCache = value; }
+        get { return _fileCache ??= new FileCache { CacheName = CacheName }; }
+        init { _fileCache = value; }
     }
 
     public Func<Uri>? GetRequestUri { get; init; }
