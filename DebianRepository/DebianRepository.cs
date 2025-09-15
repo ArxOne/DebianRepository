@@ -177,10 +177,12 @@ public class DebianRepository
 
     private static HashAlgorithm CreateHashAlgorithm(HashAlgorithmName algorithmName)
     {
+#pragma warning disable S4790 // legacy algorithms used by legacy systems
         if (algorithmName == HashAlgorithmName.MD5)
             return MD5.Create();
         if (algorithmName == HashAlgorithmName.SHA1)
             return SHA1.Create();
+#pragma warning restore S4790
         if (algorithmName == HashAlgorithmName.SHA256)
             return SHA256.Create();
         if (algorithmName == HashAlgorithmName.SHA384)
