@@ -25,7 +25,7 @@ public record DebianRepositoryConfiguration
 
     public string? GpgPrivateKey { get; init; }
 
-    public string[] AllArchitectures { get; init; } = ["amd64", "i386", "armel", "armhf"];
+    public string[] AllArchitectures { get; init; } = ["amd64", "i386", "arm64", "armel", "armhf"];
 
     private FileCache? _fileCache;
 
