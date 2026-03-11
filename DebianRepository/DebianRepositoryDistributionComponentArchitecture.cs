@@ -35,7 +35,7 @@ public class DebianRepositoryDistributionComponentArchitecture
         var (packagesFileName, packageContent, contentType) = GetPackagesFile(stanzaEncoding);
         yield return (packagesFileName, packageContent, contentType);
         yield return Pack(packagesFileName, packageContent, "gz", s => new GZipStream(s, CompressionLevel.SmallestSize), "application/gzip");
-        yield return Pack(packagesFileName, packageContent, "bz2", s => new BZip2Stream(s, CompressionMode.Compress, false), "application/x-bzip2");
+        yield return Pack(packagesFileName, packageContent, "bz2", s => BZip2Stream.Create(s, CompressionMode.Compress, false), "application/x-bzip2");
     }
 
     private (string Name, byte[] Content, string ContenType) Pack(string fileName, byte[] content, string extension, Func<Stream, Stream> createPacker, string contentType)
